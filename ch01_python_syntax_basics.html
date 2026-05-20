@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="utf-8">
+<title>Chapter 1. Python 小白急救包（一）：語法與資料</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<article>
+
+<p class="chapter-label">Chapter 1</p>
+<h1>Python 小白急救包（一）：語法與資料</h1>
+
+<p>這章不是教完整的 Python。完整的 Python 教一本書、一學期、甚至一個職涯都教不完。我們只挑一個最小的子集：剛好夠讀懂本課所有範例的那幾個語法。</p>
+
+<p>學完這章你不會變成 Python 工程師。但你會看懂後面所有的程式碼在做什麼，這對「使用 API」來說已經足夠。剩下的細節，等你做完幾個小工具、開始想自己改造範例的時候，自然會學到。</p>
+
+<h2>寫程式之前：怎麼跑 Python</h2>
+
+<p>最快的方式是打開終端機，直接打：</p>
+
+<pre><code>python3</code></pre>
+
+<p>你會看到三個 <code>&gt;&gt;&gt;</code> 符號，這叫 REPL（Read-Eval-Print Loop），可以一行一行試 Python。要離開的話打 <code>exit()</code> 或按 <code>Ctrl + D</code>。</p>
+
+<p>但本課大部分時候我們會把程式存成 <code>.py</code> 檔案，然後執行：</p>
+
+<pre><code>python3 hello.py</code></pre>
+
+<p>兩種方式我們都會用。REPL 適合快速試一行，檔案適合寫真正的工具。</p>
+
+<h2>變數與字串</h2>
+
+<p>變數是給一個值取個名字，方便之後重複使用：</p>
+
+<pre><code>name = "OpenAI"
+year = 2025</code></pre>
+
+<p>Python 不需要事先宣告型別——你給它什麼，它就記住什麼。<code>name</code> 是字串（一串文字），<code>year</code> 是整數。</p>
+
+<p>字串可以用雙引號 <code>"..."</code> 或單引號 <code>'...'</code>，兩個一模一樣：</p>
+
+<pre><code>greeting = "Hello"
+greeting = 'Hello'</code></pre>
+
+<div class="callout note">
+  <span class="label">Note</span>
+  為什麼有兩種寫法？因為當字串本身包含引號時你需要另一種包它。例如 <code>"It's a test"</code> 用雙引號包，這樣裡面的單引號就不會搞混。其他語言（像 Java、C#）只有雙引號，遇到這種情況得用 <code>\'</code> 跳脫，比較囉嗦。
+</div>
+
+<p>把字串接起來用 <code>+</code>：</p>
+
+<pre><code>full = "Hello" + " " + "OpenAI"
+print(full)  # Hello OpenAI</code></pre>
+
+<p>或者用 f-string（formatted string）把變數塞進去，這是現代 Python 最常用的寫法：</p>
+
+<pre><code>name = "OpenAI"
+year = 2025
+print(f"{name} 在 {year} 年很紅")
+# OpenAI 在 2025 年很紅</code></pre>
+
+<p>f-string 就是「字串前面加個 f」，然後用 <code>{}</code> 包住變數。本課所有要組合文字的地方幾乎都用這個。</p>
+
+<h2>list：有順序的清單</h2>
+
+<p><code>list</code> 是一串有順序的東西，用方括號 <code>[]</code> 包起來：</p>
+
+<pre><code>models = ["gpt-4o", "gpt-4o-mini", "whisper-1"]</code></pre>
+
+<p>存取用索引（從 0 開始）：</p>
+
+<pre><code>print(models[0])  # gpt-4o
+print(models[2])  # whisper-1</code></pre>
+
+<div class="callout tip">
+  <span class="label">Tip</span>
+  「從 0 開始」是程式語言的傳統，原因是早期硬體用「記憶體偏移量」做索引——第一個元素的偏移量是 0，第二個是 1，以此類推。現代程式語言大多沿用，雖然有少數例外（Lua、R、MATLAB 從 1 開始）。一開始很彆扭，習慣之後反而會覺得從 1 開始的設計很怪。
+</div>
+
+<p>加新東西到尾巴：</p>
+
+<pre><code>models.append("o1")
+print(models)  # ['gpt-4o', 'gpt-4o-mini', 'whisper-1', 'o1']</code></pre>
+
+<p>算長度：</p>
+
+<pre><code>print(len(models))  # 4</code></pre>
+
+<h2>dict：用名字查資料</h2>
+
+<p><code>dict</code>（dictionary）是「鍵值對」的集合，用大括號 <code>{}</code> 包起來：</p>
+
+<pre><code>pricing = {
+    "gpt-4o": 2.50,
+    "gpt-4o-mini": 0.15,
+    "whisper-1": 0.006,
+}</code></pre>
+
+<p>存取用 key：</p>
+
+<pre><code>print(pricing["gpt-4o"])  # 2.50</code></pre>
+
+<p>加或改值：</p>
+
+<pre><code>pricing["o1"] = 15.00</code></pre>
+
+<p><code>list</code> 跟 <code>dict</code> 是 Python 裡最常用的兩種容器。粗略的判斷方式是：<strong>有順序、會依序處理的，用 list；要用名字查的，用 dict</strong>。本課之後處理 API 回傳資料、設定檔、結構化輸出，幾乎都是這兩個的組合。</p>
+
+<div class="callout note">
+  <span class="label">Note</span>
+  講白話一點，OpenAI API 回傳給你的 JSON 物件，在 Python 裡面就是一個 dict 套 list 套 dict 的結構。看懂這兩個容器，你才看得懂 API 回傳的東西長什麼樣。Chapter 4 會詳細講 JSON。
+</div>
+
+<h2>if：根據狀況做不同的事</h2>
+
+<pre><code>score = 85
+
+if score &gt;= 90:
+    print("優")
+elif score &gt;= 60:
+    print("及格")
+else:
+    print("不及格")</code></pre>
+
+<p>幾個重點：</p>
+
+<ul>
+  <li>條件後面要加冒號 <code>:</code></li>
+  <li>條件成立要執行的程式碼<strong>往內縮排</strong>（通常是 4 個空格）</li>
+  <li><code>elif</code> 是 "else if" 的縮寫</li>
+  <li>結尾不需要分號或大括號</li>
+</ul>
+
+<p>縮排這件事下面會專門講。</p>
+
+<h2>for：對一群東西做同樣的事</h2>
+
+<pre><code>models = ["gpt-4o", "gpt-4o-mini", "whisper-1"]
+
+for model in models:
+    print(f"模型：{model}")</code></pre>
+
+<p><code>for X in Y</code> 的意思是「把 Y 裡面的每個東西，依序取出來叫做 X」。執行結果：</p>
+
+<pre><code>模型：gpt-4o
+模型：gpt-4o-mini
+模型：whisper-1</code></pre>
+
+<p>對 <code>dict</code> 做迴圈預設會拿到 key：</p>
+
+<pre><code>for name in pricing:
+    print(name, pricing[name])</code></pre>
+
+<p>但通常我們會用 <code>.items()</code> 同時拿 key 跟 value：</p>
+
+<pre><code>for name, price in pricing.items():
+    print(f"{name} 每百萬 token {price} 美金")</code></pre>
+
+<h2>函式：把一段操作打包</h2>
+
+<p>如果同一段邏輯要重複用，包成函式：</p>
+
+<pre><code>def greet(name):
+    return f"Hello, {name}!"
+
+print(greet("OpenAI"))   # Hello, OpenAI!
+print(greet("學員"))     # Hello, 學員!</code></pre>
+
+<p>幾個重點：</p>
+
+<ul>
+  <li><code>def</code> 是定義函式的關鍵字</li>
+  <li>函式名後面是參數，用括號包起來</li>
+  <li><code>return</code> 把結果交還給呼叫的人</li>
+  <li>函式內容也是縮排</li>
+</ul>
+
+<p>如果不需要回傳值（例如函式只負責印東西），可以省略 <code>return</code>：</p>
+
+<pre><code>def print_models(models):
+    for model in models:
+        print(f"- {model}")
+
+print_models(["gpt-4o", "o1"])</code></pre>
+
+<h2>縮排：Python 最大的脾氣</h2>
+
+<p>如果你以前寫過 Java、JavaScript、C++，會習慣用大括號 <code>{}</code> 標示「這幾行是一組」。Python 不用大括號——它用<strong>縮排</strong>：</p>
+
+<pre><code>if True:
+    print("這行是 if 的內容")
+    print("這行也是 if 的內容")
+print("這行不是 if 的內容")</code></pre>
+
+<p>縮排相同數量空格的程式碼算一組。縮排不對，程式直接跑不動，會跳 <code>IndentationError</code>。</p>
+
+<div class="callout warning">
+  <span class="label">Warning</span>
+  千萬不要 Tab 跟空格混用。Python 3 會直接報錯。本課推薦你的編輯器（VS Code、PyCharm）一律設定「Tab 自動展開成 4 個空格」。一旦設好，按 Tab 就會出 4 個空格，永遠不會混。
+</div>
+
+<p>這個設計剛開始很煩，但故事其實滿有趣的。</p>
+
+<div class="callout tip">
+  <span class="label">Tip</span>
+  Python 是 1989 年由 Guido van Rossum 在荷蘭設計的。他之前在另一個語言 ABC 工作過，那個語言就是用縮排來組程式碼。Guido 的觀察是：<strong>反正人類讀程式碼時就是看縮排判斷邏輯，那為什麼還要再寫一次大括號？讓縮排本身就是語法，就強迫所有人寫出整齊的程式碼</strong>。三十多年後，Python 變成全世界用戶最多的語言之一，這個設計被證明是對的——你絕對不會看到一個 Python 專案因為「縮排風格不一致」吵架，因為根本不能不一致。
+</div>
+
+<h2>把這些湊在一起</h2>
+
+<p>本課從 Chapter 5 開始的範例會大量用到上面這些。先看個小例子，把這章學的東西全部用一次：</p>
+
+<pre><code>def find_cheap_models(pricing, threshold):
+    cheap = []
+    for name, price in pricing.items():
+        if price &lt; threshold:
+            cheap.append(name)
+    return cheap
+
+pricing = {
+    "gpt-4o": 2.50,
+    "gpt-4o-mini": 0.15,
+    "whisper-1": 0.006,
+}
+
+result = find_cheap_models(pricing, 1.0)
+print(f"便宜的模型：{result}")</code></pre>
+
+<p>讀讀看你能不能跟著流程跑：函式定義、空 list、for 迴圈、if 條件、append、return、f-string——全部都在裡面。如果這段你大致看得懂，這章就過了。</p>
+
+<h2>小結</h2>
+
+<p>這章我們碰過：</p>
+
+<ol>
+  <li>變數與字串（含 f-string）</li>
+  <li><code>list</code>：有順序的容器</li>
+  <li><code>dict</code>：用名字查資料的容器</li>
+  <li><code>if / elif / else</code>：條件判斷</li>
+  <li><code>for</code>：迴圈</li>
+  <li><code>def</code>：定義函式</li>
+  <li>縮排：Python 用空白標示邏輯區塊</li>
+</ol>
+
+<p>下一章我們會碰檔案讀寫跟錯誤處理——這兩個你跑任何「真的有用」的程式都會用到。</p>
+
+<h2>練習</h2>
+
+<ol>
+  <li>建立一個 list 存五個你常用的網站名稱，用 for 迴圈把它們印出來。</li>
+  <li>建立一個 dict，key 是水果名、value 是價格，找出價格大於 50 的水果。</li>
+  <li>寫一個函式 <code>count_chinese(text)</code>，計算一段字串裡有多少個中文字（提示：用 for 對 <code>text</code> 做迴圈，每個字元如果在範圍 <code>'一' &lt;= c &lt;= '鿿'</code> 內就算一個）。</li>
+  <li>故意把一行縮排寫錯，看看 Python 跳什麼錯誤訊息。把錯誤訊息看懂，是學程式的重要技能。</li>
+</ol>
+
+</article>
+
+</body>
+</html>

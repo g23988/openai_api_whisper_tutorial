@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="utf-8">
+<title>Chapter 3. API 是什麼</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  table { border-collapse: collapse; margin: 1.2em 0; font-size: 0.94em; }
+  th, td { border: 1px solid var(--rule); padding: 8px 12px; text-align: left; }
+  th { background: #efece2; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<article>
+
+<p class="chapter-label">Chapter 3</p>
+<h1>API 是什麼</h1>
+
+<p>這章不寫程式。我們暫停一下，把「API 到底是什麼」這個觀念真的講清楚。後面所有章節都會用到這個觀念，但如果你心裡沒有清晰的模型，再多範例也只是抄。</p>
+
+<p>很多入門教材對 API 的解釋是「Application Programming Interface 應用程式介面」——這個翻譯沒錯，但等於沒講。我們從一個更具體的角度切入。</p>
+
+<h2>ChatGPT 跟 OpenAI API 差在哪</h2>
+
+<p>你大概用過 ChatGPT。打開瀏覽器、登入、輸入問題、看模型回答。這是 OpenAI 提供的<strong>產品</strong>——一個給人類用的網頁介面，背後有對話歷史、付費機制、共享連結、語音輸入這些功能，全部包好給你。</p>
+
+<p>但如果你想做的事是：</p>
+
+<ul>
+  <li>把每天的會議錄音自動轉成逐字稿並寄到 email</li>
+  <li>在公司內部網站上加一個「自動回覆客戶問題」的按鈕</li>
+  <li>寫一個腳本把 5000 篇文章一次整理成摘要</li>
+</ul>
+
+<p>ChatGPT 做不到——它沒有「給程式呼叫」的入口。你不可能寫程式自動去 ChatGPT 網頁打字。</p>
+
+<p>這就是 <strong>API（Application Programming Interface）的角色</strong>：OpenAI 把同一個模型（甚至更強的模型）開放成「給程式呼叫的入口」。你的 Python 程式可以送一個請求過去，OpenAI 的伺服器跑模型、回給你結果。沒有網頁、沒有登入畫面、沒有對話歷史——純粹是一進一出的計算服務。</p>
+
+<p>可以這樣理解：</p>
+
+<table>
+  <thead>
+    <tr><th></th><th>ChatGPT</th><th>OpenAI API</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>對象</td><td>人類</td><td>程式</td></tr>
+    <tr><td>介面</td><td>網頁、App</td><td>HTTP request</td></tr>
+    <tr><td>計費</td><td>每月訂閱（或免費）</td><td>用多少付多少（per token）</td></tr>
+    <tr><td>對話歷史</td><td>自動保存</td><td>自己處理</td></tr>
+    <tr><td>適合</td><td>日常使用、互動探索</td><td>自動化、批量處理、整合進工具</td></tr>
+  </tbody>
+</table>
+
+<p>兩個都很好，但<strong>用途不同</strong>。本課要教的是後者。</p>
+
+<h2>一個更貼切的比喻</h2>
+
+<p>如果你經營一間餐廳，你會有：</p>
+
+<ul>
+  <li><strong>內用大廳</strong>：給客人坐下來慢慢吃，有桌椅、餐具、服務生、菜單。</li>
+  <li><strong>後門</strong>：給外送平台 Uber Eats 來取餐——沒有桌椅，車一停、餐一交、車就走。</li>
+</ul>
+
+<p>兩邊的廚房是同一個。但前面那個是給人類用的「產品」，後面那個是給「其他系統」用的接口。</p>
+
+<p>ChatGPT 是內用大廳。OpenAI API 是後門。同一批廚師、同一份食材，但服務的對象與形式完全不同。</p>
+
+<div class="callout tip">
+  <span class="label">Tip</span>
+  這個「同一套能力，兩種接口」的模式不只在 OpenAI 出現。Google 有 Google Maps 網站，也有 Google Maps API；Stripe 有付款網頁，也有 Stripe API；YouTube 有網站，也有 YouTube API。<strong>所有規模到一定程度的軟體公司，幾乎都會同時提供「給人用」與「給程式用」兩種介面</strong>。這幾乎是現代軟體的標準商業模式，被 a16z 等矽谷投資人稱為「API 經濟」。
+</div>
+
+<h2>一通 API call 在幹嘛</h2>
+
+<p>具體一點。當你在 Python 寫：</p>
+
+<pre><code>client.responses.create(
+    model="gpt-4o",
+    input="用一句話解釋什麼是 API。",
+)</code></pre>
+
+<p>電腦在做的事其實是：</p>
+
+<ol>
+  <li>把你的問題打包成一份「文件」（叫做 JSON，下一章詳細講）</li>
+  <li>透過網路送到 OpenAI 的伺服器（網址是 <code>api.openai.com</code>）</li>
+  <li>順便附上你的 API key 證明「我是付過錢的客戶」</li>
+  <li>等對方收到、跑模型、回應</li>
+  <li>把對方回的「文件」拆開，把模型講的話拿出來給你</li>
+</ol>
+
+<p>整個流程跟你打電話訂披薩很像：</p>
+
+<ul>
+  <li>撥號（連到伺服器）</li>
+  <li>報名字（API key）</li>
+  <li>點餐（input + model）</li>
+  <li>等對方確認（網路傳輸）</li>
+  <li>收到回覆（response）</li>
+</ul>
+
+<p>差別只是這通電話是程式打的，對話內容是 JSON 格式，整個流程通常在 2 秒內完成。</p>
+
+<h2>API key 是什麼</h2>
+
+<p>API key 是一串看起來像 <code>sk-...</code> 的字串，是 OpenAI 給你的「身份證」。每次你呼叫 API，這串字串會跟著請求一起送過去，OpenAI 才知道：</p>
+
+<ul>
+  <li>這個請求是誰打來的</li>
+  <li>用量要記在誰的帳上</li>
+  <li>有沒有超過額度</li>
+</ul>
+
+<p>換句話說，<strong>有你的 API key 的人，等於可以用你的帳號花錢</strong>。所以保護 API key 是這套課貫穿始終的主題，後面 Chapter 5 跟 Chapter 16 會重點講。</p>
+
+<div class="callout warning">
+  <span class="label">Warning</span>
+  三個絕對不要做的事：(1) 把 API key 寫死在程式碼裡並 push 到 GitHub；(2) 把 API key 貼在前端 JavaScript（瀏覽器任何人都看得到）；(3) 把含有 API key 的截圖傳給任何人。GitHub 上有偵測 bot，洩漏的 key 通常幾分鐘內就會被自動撤銷——但也可能在被撤銷前就被別人拿去打爆額度。本課所有範例都用環境變數 <code>OPENAI_API_KEY</code> 來傳遞 key，從不寫死在程式碼。
+</div>
+
+<h2>Token、模型、費用的基本直覺</h2>
+
+<p>每次呼叫 API 都要花錢，金額取決於三件事：</p>
+
+<ul>
+  <li><strong>用哪個模型</strong>：<code>gpt-4o</code> 比 <code>gpt-4o-mini</code> 貴，<code>o1</code> 比兩者都貴</li>
+  <li><strong>送進去多少 token</strong>（你的問題、檔案內容）</li>
+  <li><strong>模型輸出多少 token</strong>（回答長度）</li>
+</ul>
+
+<p><strong>Token 不等於字</strong>。粗略對應：1 token ≈ 0.75 個英文單字 ≈ 0.5 到 1 個中文字。本課 Chapter 16 會講怎麼用 <code>tiktoken</code> 工具精確計算。</p>
+
+<p>現在你只需要建立一個直覺：</p>
+
+<ul>
+  <li><strong>問一句話、回一句話</strong>：通常不到 0.001 美金</li>
+  <li><strong>整理一份 10 分鐘會議逐字稿</strong>（語音轉文字 + 摘要）：通常幾美分到一兩毛</li>
+  <li><strong>批量處理一千份文件</strong>：就要認真算了</li>
+</ul>
+
+<div class="callout note">
+  <span class="label">Note</span>
+  這個量級對個人或小型工具來說很便宜（一天搞個小專案花 1-2 美金就玩得很開心），但對「跑在生產環境、每天幾萬個請求」的服務來說，成本是真實的。本課後面我們會做的工具屬於前者，但 Chapter 16 還是會教怎麼估算成本，因為這個技能你遲早用得到。
+</div>
+
+<h2>為什麼不用 ChatGPT 就好</h2>
+
+<p>你可能會想：「我每天用 ChatGPT 也能整理會議紀錄，為什麼還要學 API？」</p>
+
+<p>務實的答案有四個：</p>
+
+<p><strong>1. 自動化。</strong> ChatGPT 你得手動貼內容、手動複製結果。API 可以接上「定時抓 email」「自動掃資料夾」「直接寫進資料庫」，變成不需要你介入的流程。</p>
+
+<p><strong>2. 整合進你自己的工具。</strong> ChatGPT 是 OpenAI 的網頁，你不能在裡面加你公司的按鈕、不能整合公司的客戶資料。但 API 可以變成你自己 app 的一部分。</p>
+
+<p><strong>3. 結構化處理。</strong> API 可以強制模型輸出固定格式 JSON（本課 Chapter 13 會教），讓結果直接給其他程式使用。ChatGPT 雖然也能做，但需要每次手動複製貼上。</p>
+
+<p><strong>4. 細部控制。</strong> API 給你很多 ChatGPT 沒有的旋鈕：溫度、輸出長度、結構化 schema、streaming、tool calling……這些都是「做工具」時的必要工具。</p>
+
+<p><strong>反過來說</strong>，如果你只是想自己問問題、隨意聊聊、探索想法，繼續用 ChatGPT 就好。<strong>API 是給「想做工具」的人準備的</strong>——這也是本課的所有讀者應該是的角色。</p>
+
+<h2>小結</h2>
+
+<p>這章我們把幾個關鍵觀念講清楚了：</p>
+
+<ol>
+  <li><strong>ChatGPT 是給人用的產品，API 是給程式呼叫的接口</strong>——共用同一批模型，但形式完全不同</li>
+  <li><strong>API call 就是「程式之間的電話」</strong>——透過網路送請求、拿回應</li>
+  <li><strong>API key 是你的身份證</strong>，洩漏等於有人可以花你的錢</li>
+  <li><strong>API 計費按 token</strong>——粗略對應字數，本課後面會教精確估算</li>
+  <li><strong>API 適合自動化、整合、結構化處理</strong>；ChatGPT 適合互動、探索</li>
+</ol>
+
+<p>下一章 Chapter 4 會把「API call 的內部結構」拆開來看——什麼是 HTTP、什麼是 JSON、status code 是在說什麼。理解了那層，OpenAI SDK 對你來說就不是黑箱了。</p>
+
+<h2>練習</h2>
+
+<ol>
+  <li>想三個你日常生活或工作中「重複做、很煩、希望自動化」的場景。哪些可以用 OpenAI API 加上一點 Python 處理？</li>
+  <li>看 OpenAI 的定價頁（自己 Google），找出 <code>gpt-4o</code>、<code>gpt-4o-mini</code>、<code>whisper-1</code> 三個的每百萬 token 或每分鐘音訊的價格。</li>
+  <li>想一個你身邊的人會用的小工具：給定一段中文，產生英文摘要。如果這個工具一天會被用 100 次，每次平均 500 字輸入 + 200 字輸出，用 <code>gpt-4o-mini</code> 大概一個月要多少錢？（粗估即可，下一章我們會用真實數字算）</li>
+</ol>
+
+</article>
+
+</body>
+</html>

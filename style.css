@@ -1,0 +1,172 @@
+:root {
+  --text: #1d1d1d;
+  --muted: #555;
+  --bg: #fbfaf6;
+  --code-bg: #2b2b2b;
+  --code-text: #eaeaea;
+  --inline-bg: #ececec;
+  --rule: #d8d4c4;
+  --note-bg: #eaf2fb;
+  --note-border: #3b6fb4;
+  --tip-bg: #ebf6ec;
+  --tip-border: #3d8c47;
+  --warning-bg: #fbe9e6;
+  --warning-border: #c0392b;
+}
+
+html { font-size: 17px; }
+
+body {
+  font-family: Georgia, "Source Han Serif TC", "Noto Serif CJK TC", "PingFang TC", "Songti TC", serif;
+  max-width: 720px;
+  margin: 56px auto 80px;
+  padding: 0 28px;
+  line-height: 1.75;
+  color: var(--text);
+  background: var(--bg);
+}
+
+h1 {
+  font-size: 1.85em;
+  margin: 0 0 1.2em;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--text);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+h2 {
+  font-size: 1.35em;
+  margin: 2em 0 0.6em;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--rule);
+  font-weight: 700;
+}
+
+h3 {
+  font-size: 1.1em;
+  margin: 1.6em 0 0.5em;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+p { margin: 1em 0; }
+
+ol, ul {
+  padding-left: 1.6em;
+  margin: 1em 0;
+}
+
+li { margin: 0.4em 0; }
+
+code {
+  font-family: Menlo, Consolas, "Roboto Mono", "Courier New", monospace;
+  background: var(--inline-bg);
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 0.88em;
+}
+
+pre {
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 16px 20px;
+  border-radius: 5px;
+  overflow-x: auto;
+  font-size: 0.86em;
+  line-height: 1.55;
+  margin: 1.2em 0;
+}
+
+pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  font-size: 1em;
+}
+
+strong { font-weight: 700; }
+
+.callout {
+  margin: 1.4em 0;
+  padding: 14px 18px 14px 20px;
+  border-left: 4px solid;
+  border-radius: 0 4px 4px 0;
+  font-size: 0.96em;
+  line-height: 1.65;
+}
+
+.callout .label {
+  display: inline-block;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.78em;
+  padding: 1px 8px;
+  border-radius: 3px;
+  margin-right: 8px;
+  vertical-align: 2px;
+  font-family: Menlo, Consolas, monospace;
+}
+
+.callout p { margin: 0.2em 0; display: inline; }
+
+.note {
+  background: var(--note-bg);
+  border-left-color: var(--note-border);
+}
+.note .label {
+  background: var(--note-border);
+  color: white;
+}
+
+.tip {
+  background: var(--tip-bg);
+  border-left-color: var(--tip-border);
+}
+.tip .label {
+  background: var(--tip-border);
+  color: white;
+}
+
+.warning {
+  background: var(--warning-bg);
+  border-left-color: var(--warning-border);
+}
+.warning .label {
+  background: var(--warning-border);
+  color: white;
+}
+
+.chapter-label {
+  font-family: Menlo, Consolas, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  font-size: 0.8em;
+  color: var(--muted);
+  margin: 0 0 4px;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--rule);
+  margin: 3em 0;
+}
+
+.preview-banner {
+  background: #fff8e1;
+  border: 1px dashed #c9a227;
+  padding: 14px 18px;
+  border-radius: 4px;
+  margin: 2em 0 1.5em;
+  font-size: 0.92em;
+  color: #6d5311;
+}
+
+.error-list {
+  margin: 1em 0;
+}
+
+.error-list p {
+  margin: 0.6em 0;
+}

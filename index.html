@@ -1,0 +1,5390 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Learning OpenAI API with Python</title>
+<link rel="stylesheet" href="style.css">
+<style>
+table { border-collapse: collapse; margin: 1.2em 0; font-size: 0.94em; }
+  th, td { border: 1px solid var(--rule); padding: 8px 12px; text-align: left; }
+  th { background: #efece2; font-weight: 700; }
+
+/* index page specific */
+html { scroll-behavior: smooth; scroll-padding-top: 24px; }
+
+body {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 296px 1fr;
+  max-width: 1200px;
+  margin: 0 auto;
+  align-items: start;
+}
+
+/* === Left sidebar === */
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  padding: 44px 18px 48px 36px;
+  border-right: 1px solid rgba(0,0,0,0.08);
+  background: #fdfcf7;
+  font-size: 0.875em;
+  line-height: 1.55;
+  font-family: Georgia, "Source Han Serif TC", "Noto Serif CJK TC", "PingFang TC", serif;
+}
+
+.sidebar .brand-block {
+  padding: 0 8px;
+  margin-bottom: 30px;
+  border-bottom: 1px solid rgba(0,0,0,0.07);
+  padding-bottom: 22px;
+}
+.sidebar .brand {
+  font-family: Georgia, serif;
+  font-weight: 700;
+  font-size: 0.95em;
+  letter-spacing: 0.04em;
+  color: #1a1a1a;
+  margin: 0;
+  line-height: 1.3;
+}
+.sidebar .brand-sub {
+  font-size: 0.82em;
+  color: #8a8478;
+  font-style: italic;
+  margin: 3px 0 0;
+  letter-spacing: 0.02em;
+}
+
+.sidebar .part {
+  margin-bottom: 22px;
+}
+.sidebar .part:last-child {
+  margin-bottom: 0;
+}
+.sidebar .part-label {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 0 10px;
+  margin: 0 0 6px;
+  font-family: Menlo, Consolas, monospace;
+  font-size: 0.65em;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: #9a9183;
+}
+.sidebar .part-num {
+  font-weight: 700;
+  color: #6b6359;
+}
+.sidebar .part-name {
+  font-weight: 600;
+  letter-spacing: 0.15em;
+}
+.sidebar ol {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.sidebar li {
+  margin: 0;
+}
+.sidebar a {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 10px 6px 12px;
+  color: #45413c;
+  text-decoration: none;
+  border-radius: 4px;
+  transition: background 0.12s ease, color 0.12s ease;
+  line-height: 1.45;
+}
+.sidebar a:hover {
+  background: rgba(60,50,35,0.05);
+  color: #1a1a1a;
+}
+.sidebar a:focus-visible {
+  outline: 2px solid #c0a36a;
+  outline-offset: 1px;
+}
+.sidebar a.active {
+  background: rgba(60,50,35,0.07);
+  color: #111;
+  font-weight: 600;
+}
+.sidebar .num {
+  flex-shrink: 0;
+  min-width: 36px;
+  font-family: Menlo, Consolas, monospace;
+  font-size: 0.74em;
+  color: #a8a092;
+  letter-spacing: 0.02em;
+  font-weight: 500;
+}
+.sidebar a.active .num {
+  color: #555;
+}
+.sidebar .ttl {
+  flex: 1;
+}
+
+/* Custom thin scrollbar */
+.sidebar::-webkit-scrollbar { width: 8px; }
+.sidebar::-webkit-scrollbar-track { background: transparent; }
+.sidebar::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.12);
+  border-radius: 4px;
+  border: 2px solid #fdfcf7;
+}
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0,0,0,0.22);
+}
+.sidebar { scrollbar-width: thin; scrollbar-color: rgba(0,0,0,0.15) transparent; }
+
+/* === Main content === */
+.content {
+  padding: 0 36px;
+  max-width: 760px;
+}
+
+.site-header {
+  text-align: left;
+  padding: 60px 0 30px;
+  border-bottom: 2px solid var(--text);
+  margin-bottom: 40px;
+}
+.site-header h1 {
+  font-size: 2.2em;
+  margin: 0 0 0.3em;
+  border: none;
+  padding: 0;
+  letter-spacing: 0.04em;
+}
+.site-header .subtitle {
+  font-size: 1.1em;
+  color: var(--muted);
+  margin: 0;
+  font-style: italic;
+}
+.site-header .meta {
+  margin-top: 16px;
+  font-size: 0.85em;
+  color: var(--muted);
+  font-family: Menlo, Consolas, monospace;
+}
+
+/* === Mobile TOC (top, fallback when no sidebar) === */
+.toc {
+  background: #f3efe0;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 24px 32px;
+  margin: 2em 0 3em;
+}
+.toc h2 {
+  margin: 0 0 0.8em;
+  border: none;
+  padding: 0;
+  font-size: 1.2em;
+}
+.toc ol { margin: 0; padding-left: 1.6em; }
+.toc li { margin: 0.5em 0; line-height: 1.5; }
+.toc a {
+  color: var(--text);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--muted);
+}
+.toc a:hover {
+  color: var(--note-border);
+  border-bottom-color: var(--note-border);
+}
+
+.intro { margin: 2em 0; }
+.intro p { line-height: 1.85; }
+
+.chapter {
+  margin: 5em 0 4em;
+  padding-top: 1em;
+  border-top: 1px dashed var(--rule);
+}
+.chapter:first-of-type { border-top: none; }
+
+.chapter-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin: 4em 0 1em;
+  padding: 20px 0;
+  border-top: 1px solid var(--rule);
+  font-size: 0.92em;
+  flex-wrap: wrap;
+}
+.chapter-nav a {
+  color: var(--note-border);
+  text-decoration: none;
+  font-family: Menlo, Consolas, monospace;
+}
+.chapter-nav a:hover { text-decoration: underline; }
+.nav-prev { flex: 1; text-align: left; }
+.nav-top  { flex: 0; text-align: center; padding: 0 16px; color: var(--muted) !important; }
+.nav-next { flex: 1; text-align: right; }
+
+.back-to-top {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--text);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  font-size: 1.2em;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  opacity: 0.85;
+  transition: opacity 0.2s;
+  z-index: 100;
+}
+.back-to-top:hover { opacity: 1; }
+
+/* Show top TOC only on mobile (when sidebar hidden) */
+.mobile-toc { display: none; }
+
+@media (max-width: 900px) {
+  .layout {
+    display: block;
+  }
+  .sidebar { display: none; }
+  .content { padding: 0 22px; max-width: 760px; margin: 0 auto; }
+  .mobile-toc { display: block; }
+  .site-header { padding: 40px 0 20px; }
+  .site-header h1 { font-size: 1.8em; }
+}
+
+@media (max-width: 600px) {
+  .site-header h1 { font-size: 1.5em; }
+  .toc { padding: 18px 22px; }
+  .chapter-nav { flex-direction: column; gap: 8px; }
+  .nav-prev, .nav-next, .nav-top { text-align: center; flex: none; }
+}
+</style>
+</head>
+<body>
+
+<a id="top"></a>
+
+<div class="layout">
+
+  <aside class="sidebar">
+    <div class="brand-block">
+      <p class="brand">Learning OpenAI API</p>
+      <p class="brand-sub">with Python · 18 章中文教材</p>
+    </div>
+      <div class="part">
+        <div class="part-label"><span class="part-num">Part I</span><span class="part-name">基礎準備</span></div>
+        <ol>
+        <li><a href="#ch00" data-target="ch00"><span class="num">Ch 0</span><span class="ttl">開課前準備</span></a></li>
+        <li><a href="#ch01" data-target="ch01"><span class="num">Ch 1</span><span class="ttl">Python 小白急救包（一）：語法與資料</span></a></li>
+        <li><a href="#ch02" data-target="ch02"><span class="num">Ch 2</span><span class="ttl">Python 小白急救包（二）：檔案與錯誤處理</span></a></li>
+        <li><a href="#ch03" data-target="ch03"><span class="num">Ch 3</span><span class="ttl">API 是什麼</span></a></li>
+        <li><a href="#ch04" data-target="ch04"><span class="num">Ch 4</span><span class="ttl">HTTP 與 JSON 基礎</span></a></li>
+        </ol>
+      </div>
+      <div class="part">
+        <div class="part-label"><span class="part-num">Part II</span><span class="part-name">OpenAI API 入門</span></div>
+        <ol>
+        <li><a href="#ch05" data-target="ch05"><span class="num">Ch 5</span><span class="ttl">建立 Python 開發環境</span></a></li>
+        <li><a href="#ch06" data-target="ch06"><span class="num">Ch 6</span><span class="ttl">第一個 Responses API 程式</span></a></li>
+        <li><a href="#ch07" data-target="ch07"><span class="num">Ch 7</span><span class="ttl">Prompt 基礎</span></a></li>
+        <li><a href="#ch08" data-target="ch08"><span class="num">Ch 8</span><span class="ttl">做一個文字小工具</span></a></li>
+        </ol>
+      </div>
+      <div class="part">
+        <div class="part-label"><span class="part-num">Part III</span><span class="part-name">音訊與 ffmpeg</span></div>
+        <ol>
+        <li><a href="#ch09" data-target="ch09"><span class="num">Ch 9</span><span class="ttl">Speech to Text</span></a></li>
+        <li><a href="#ch10" data-target="ch10"><span class="num">Ch 10</span><span class="ttl">音訊格式與 ffmpeg 基礎</span></a></li>
+        <li><a href="#ch11" data-target="ch11"><span class="num">Ch 11</span><span class="ttl">長音檔切段與轉錄</span></a></li>
+        </ol>
+      </div>
+      <div class="part">
+        <div class="part-label"><span class="part-num">Part IV</span><span class="part-name">圖形化工具與輸出品質</span></div>
+        <ol>
+        <li><a href="#ch12" data-target="ch12"><span class="num">Ch 12</span><span class="ttl">Streamlit GUI</span></a></li>
+        <li><a href="#ch13" data-target="ch13"><span class="num">Ch 13</span><span class="ttl">Structured Output</span></a></li>
+        <li><a href="#ch14" data-target="ch14"><span class="num">Ch 14</span><span class="ttl">Streaming</span></a></li>
+        </ol>
+      </div>
+      <div class="part">
+        <div class="part-label"><span class="part-num">Part V</span><span class="part-name">交付、維護與安全</span></div>
+        <ol>
+        <li><a href="#ch15" data-target="ch15"><span class="num">Ch 15</span><span class="ttl">專案結構與 README</span></a></li>
+        <li><a href="#ch16" data-target="ch16"><span class="num">Ch 16</span><span class="ttl">安全、成本與錯誤排除</span></a></li>
+        <li><a href="#ch17" data-target="ch17"><span class="num">Ch 17</span><span class="ttl">期末專案：會議逐字稿工具</span></a></li>
+        </ol>
+      </div>
+  </aside>
+
+  <div class="content">
+
+    <header class="site-header">
+      <h1>Learning OpenAI API with Python</h1>
+      <p class="subtitle">從第一個 API call 到自己的 AI 小工具</p>
+      <p class="meta">18 章 · 中文 · O'Reilly 風格教材</p>
+    </header>
+
+    <section class="intro">
+      <p>這是一套給 API 初學者的 OpenAI API 實作課。課程不從 AI 理論開始，而是帶學員一步一步做出可以使用的小工具：文字生成、摘要、語音轉文字、音訊轉檔、圖形化介面，以及最後的會議逐字稿工具。</p>
+
+      <p>目標讀者：會基本操作電腦、沒寫過或寫過一點 Python、想知道 ChatGPT 以外如何把 OpenAI 能力接到自己工具裡的人。每章都有可執行範例、可交付的小成果，以及常見錯誤排除。</p>
+
+      <p>建議從 Chapter 0 開始，按章節順序閱讀。每章約 1500 到 2500 字加範例，全部讀完約 4 到 6 小時，動手做完整套大約 8 到 10 週。</p>
+    </section>
+
+    <nav class="toc mobile-toc">
+      <h2>目錄</h2>
+      <ol>
+    <li><a href="#ch00">Chapter 0. 開課前準備</a></li>
+    <li><a href="#ch01">Chapter 1. Python 小白急救包（一）：語法與資料</a></li>
+    <li><a href="#ch02">Chapter 2. Python 小白急救包（二）：檔案與錯誤處理</a></li>
+    <li><a href="#ch03">Chapter 3. API 是什麼</a></li>
+    <li><a href="#ch04">Chapter 4. HTTP 與 JSON 基礎</a></li>
+    <li><a href="#ch05">Chapter 5. 建立 Python 開發環境</a></li>
+    <li><a href="#ch06">Chapter 6. 第一個 Responses API 程式</a></li>
+    <li><a href="#ch07">Chapter 7. Prompt 基礎</a></li>
+    <li><a href="#ch08">Chapter 8. 做一個文字小工具</a></li>
+    <li><a href="#ch09">Chapter 9. Speech to Text</a></li>
+    <li><a href="#ch10">Chapter 10. 音訊格式與 ffmpeg 基礎</a></li>
+    <li><a href="#ch11">Chapter 11. 長音檔切段與轉錄</a></li>
+    <li><a href="#ch12">Chapter 12. Streamlit GUI</a></li>
+    <li><a href="#ch13">Chapter 13. Structured Output</a></li>
+    <li><a href="#ch14">Chapter 14. Streaming</a></li>
+    <li><a href="#ch15">Chapter 15. 專案結構與 README</a></li>
+    <li><a href="#ch16">Chapter 16. 安全、成本與錯誤排除</a></li>
+    <li><a href="#ch17">Chapter 17. 期末專案：會議逐字稿工具</a></li>
+      </ol>
+    </nav>
+
+    <main>
+<section id="ch00" class="chapter">
+<p class="chapter-label">Chapter 0</p>
+<h1>開課前準備</h1>
+
+<p>這章不教 API、不寫 Python，只做一件事：確認你的電腦準備好了。</p>
+
+<p>聽起來不重要，但我教課這幾年發現，一半的學員卡關不是因為程式難，而是因為「terminal 找不到、虛擬環境啟動不了、ffmpeg 沒裝、檔案存在桌面但程式說找不到」。這些不是寫程式的問題，是「電腦怎麼操作」的問題。所以這章我們先把這層處理掉，後面才能安心寫程式。</p>
+
+<h2>為什麼一定要用終端機</h2>
+
+<p>很多人第一次看到終端機（Terminal、命令提示字元）那個黑底白字的東西，會問：「我用 GUI（圖形介面）不行嗎？」</p>
+
+<p>可以，但會非常累。</p>
+
+<p>GUI 一次只能做一件事：你點開一個資料夾、點開一個檔案、按一個按鈕。如果你要對 100 個音檔做同樣的處理，你得點 100 次。但終端機讓你寫一行指令就跑完——這不只是省時間，是讓你能把工具「自動化」起來。</p>
+
+<p>我們這套課要做的事——呼叫 API、轉檔案、跑腳本——本質上都是「給電腦一連串指令」。GUI 工具會把這些指令藏起來、包裝成漂亮的按鈕，但學寫程式的時候反而是阻礙。直接面對指令，反而最快。</p>
+
+<p>所以這章我們會用到的指令很少——只有三個。但這三個你要會背。</p>
+
+<h2>pwd, ls, cd</h2>
+
+<p>打開終端機（macOS 在「應用程式 → 工具程式 → 終端機」，Windows 推薦用 PowerShell 或 Windows Terminal）。</p>
+
+<p>第一個指令：</p>
+
+<pre><code>pwd</code></pre>
+
+<p><code>pwd</code> 是 "print working directory" 的縮寫，意思是「印出我現在在哪個資料夾」。終端機跟 Finder/檔案總管不一樣——它任何時候都「站在」某個資料夾裡，所有操作都是相對這個位置發生的。如果你不知道自己在哪，所有後續操作都會出問題。</p>
+
+<p>第二個：</p>
+
+<pre><code>ls</code></pre>
+
+<p><code>ls</code> 是 "list" 的縮寫，意思是「列出這個資料夾裡有什麼」。Windows 上對應的指令是 <code>dir</code>，但 PowerShell 也認 <code>ls</code>。</p>
+
+<p>第三個：</p>
+
+<pre><code>cd Desktop</code></pre>
+
+<p><code>cd</code> 是 "change directory"，意思是「換到另一個資料夾」。<code>cd Desktop</code> 會進到名為 <code>Desktop</code> 的子資料夾，<code>cd ..</code> 會回上一層，<code>cd ~</code> 會回到你的家目錄（home directory）。</p>
+
+<div class="callout tip">
+  <span class="label">Tip</span>
+  <code>~</code>（波浪號）在大部分終端機都代表「家目錄」，也就是你登入帳號的根資料夾。在 macOS 是 <code>/Users/你的帳號名</code>，在 Windows 是 <code>C:\Users\你的帳號名</code>。記住這個符號，後面很多範例會用到。
+</div>
+
+<p>光是這三個指令，就能讓你在終端機裡走來走去、看清楚自己在哪、有什麼檔案。這已經足夠完成本課所有操作。</p>
+
+<h2>絕對路徑與相對路徑</h2>
+
+<p>這是新手最常踩的坑：你寫了一段程式說「讀取 <code>meeting.mp3</code>」，結果程式說「找不到檔案」，但你明明看到那個檔案就在桌面上。</p>
+
+<p>問題通常是路徑。</p>
+
+<p>電腦的檔案有兩種寫法：</p>
+
+<p><strong>絕對路徑</strong>是從硬碟最頂端開始寫的完整位置，例如：</p>
+
+<pre><code>/Users/wei/Desktop/meeting.mp3</code></pre>
+
+<p>不管你在哪裡執行程式，這個路徑都指向同一個檔案。</p>
+
+<p><strong>相對路徑</strong>是從「你目前在哪個資料夾」算起的位置，例如：</p>
+
+<pre><code>meeting.mp3</code></pre>
+
+<p>如果你在 <code>Desktop</code> 資料夾裡執行程式，這會找到 <code>Desktop/meeting.mp3</code>；但如果你在 <code>Documents</code> 資料夾裡，就會找不到，因為 <code>Documents/meeting.mp3</code> 不存在。</p>
+
+<div class="callout note">
+  <span class="label">Note</span>
+  當程式說「找不到檔案」，第一件事永遠是跑 <code>pwd</code> 確認你目前在哪，然後跑 <code>ls</code> 確認那個檔案是不是真的在這個資料夾裡。八成的「找不到檔案」問題都是路徑問題，不是程式 bug。
+</div>
+
+<h2>副檔名的小坑（特別給 Mac 使用者）</h2>
+
+<p>macOS 預設會把常見副檔名（<code>.txt</code>、<code>.mp3</code>、<code>.pdf</code>）隱藏起來，這在 Finder 裡看起來很美，但對寫程式來說是地雷。</p>
+
+<p>你在 Finder 看到一個檔案叫 <code>meeting</code>，實際上它可能叫 <code>meeting.mp3</code>，也可能叫 <code>meeting.mp3.txt</code>（如果你不小心改副檔名又沒注意）。程式只認真實檔名，所以這時候你會卡住。</p>
+
+<p>請打開 Finder 的偏好設定，把「顯示所有檔名副檔名」打勾。Windows 的檔案總管也有類似的選項（檢視 → 副檔名）。<strong>強烈建議現在就去設定</strong>，否則之後絕對會踩到。</p>
+
+<h2>確認三個工具</h2>
+
+<p>接下來確認本課要用的三個東西都裝好了。</p>
+
+<h3>Python</h3>
+
+<pre><code>python3 --version</code></pre>
+
+<p>應該看到類似 <code>Python 3.11.5</code> 或 <code>Python 3.12.x</code> 的字樣。本課需要 Python 3.10 以上，越新越好。</p>
+
+<div class="callout note">
+  <span class="label">Note</span>
+  macOS 跟 Linux 上要打 <code>python3</code>，<strong>不是</strong> <code>python</code>。這是有歷史原因的：Python 在 2008 年從 2 版升級到 3 版的時候，兩個版本不完全相容，社群花了超過十年才把所有套件遷移過去。為了避免「打 <code>python</code> 結果跑出 Python 2 把程式跑壞」的混亂，現代 macOS 跟很多 Linux 發行版直接把 <code>python</code> 留給舊版（甚至完全拿掉），新版只能用 <code>python3</code>。Windows 因為沒有預裝 Python，所以你裝的就是 3 版，打 <code>python</code> 也通常 OK。
+</div>
+
+<h3>pip</h3>
+
+<pre><code>pip --version</code></pre>
+
+<p>或者：</p>
+
+<pre><code>pip3 --version</code></pre>
+
+<p><code>pip</code> 是 Python 的套件管理工具，等下安裝 OpenAI SDK 要用。看到版本號就 OK，看到 <code>command not found</code> 就要回頭裝 Python。</p>
+
+<h3>ffmpeg</h3>
+
+<pre><code>ffmpeg -version</code></pre>
+
+<p><code>ffmpeg</code> 是處理音訊與影片的瑞士刀。我們在 Chapter 9 到 Chapter 11 處理音檔的時候會大量用到。</p>
+
+<p>如果跳出 <code>command not found</code>，要先裝。macOS 推薦用 Homebrew：</p>
+
+<pre><code>brew install ffmpeg</code></pre>
+
+<p>Windows 可以從 ffmpeg.org 下載，或者用 Chocolatey/Scoop 之類的套件管理器。</p>
+
+<div class="callout tip">
+  <span class="label">Tip</span>
+  ffmpeg 這個工具來頭很大。它是 2000 年由一位法國工程師 Fabrice Bellard 寫的開源專案（這人後來還寫了 QEMU 跟 JSLinux），二十多年來幾乎所有處理音訊影像的軟體背後都用它——YouTube、VLC、OBS、瀏覽器播放器全都靠它編解碼。當你聽到「業界標準工具」，ffmpeg 是少數真的當之無愧的那種。
+</div>
+
+<h2>平台差異速查表</h2>
+
+<p>本課大部分指令在三個平台都一樣，但有幾個常見差異要知道：</p>
+
+<table>
+  <thead>
+    <tr><th>動作</th><th>macOS / Linux</th><th>Windows</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Python 指令</td><td><code>python3</code></td><td><code>python</code></td></tr>
+    <tr><td>列出檔案</td><td><code>ls</code></td><td><code>dir</code> 或 <code>ls</code>（PowerShell）</td></tr>
+    <tr><td>顯示環境變數</td><td><code>echo $OPENAI_API_KEY</code></td><td><code>echo %OPENAI_API_KEY%</code>（cmd）或 <code>echo $env:OPENAI_API_KEY</code>（PowerShell）</td></tr>
+    <tr><td>啟動虛擬環境</td><td><code>source .venv/bin/activate</code></td><td><code>.venv\Scripts\activate</code></td></tr>
+    <tr><td>家目錄符號</td><td><code>~</code></td><td><code>~</code>（PowerShell）或 <code>%USERPROFILE%</code>（cmd）</td></tr>
+  </tbody>
+</table>
+
+<div class="callout warning">
+  <span class="label">Warning</span>
+  終端機關掉之後，環境變數會消失。如果你下一章設定的 <code>OPENAI_API_KEY</code> 在新的終端機視窗失效了，這是正常的——後面 Chapter 5 會教怎麼讓它永久生效。
+</div>
+
+<h2>小結</h2>
+
+<p>這章完成的事：</p>
+
+<ol>
+  <li>知道終端機是什麼、為什麼要用</li>
+  <li>會用 <code>pwd</code>、<code>ls</code>、<code>cd</code> 三個指令</li>
+  <li>知道絕對路徑與相對路徑的差別</li>
+  <li>確認本機有可用的 Python、pip、ffmpeg</li>
+  <li>打開檔案副檔名顯示（如果之前沒開）</li>
+</ol>
+
+<p>下一章開始我們會碰真正的程式碼——但不是 OpenAI API，是 Python 自己。要呼叫 API，得先有基本的 Python 手感。</p>
+
+<h2>練習</h2>
+
+<ol>
+  <li>打開終端機，跑 <code>pwd</code>，把結果寫下來。然後 <code>cd ~</code>、再 <code>pwd</code>，看看差別。</li>
+  <li>用 <code>cd</code> 進到桌面（macOS：<code>cd ~/Desktop</code>；Windows：<code>cd $env:USERPROFILE\Desktop</code>），然後 <code>ls</code> 看看桌面上有什麼。</li>
+  <li>建立一個叫 <code>openai-course</code> 的資料夾，並 <code>cd</code> 進去。提示：用 <code>mkdir openai-course</code>。</li>
+  <li>跑 <code>python3 --version</code>、<code>pip --version</code>、<code>ffmpeg -version</code>，三個都要有版本號出來。如果有任何一個失敗，先解決再進下一章。</li>
+</ol>
+<div class="chapter-nav">
+  
+  <a class="nav-top" href="#top">↑ 回目錄</a>
+  <a class="nav-next" href="#ch01">下一章：Python 小白急救包（一）：語法與資料 →</a>
+</div>
+</section>
+
+<section id="ch01" class="chapter">
+<p class="chapter-label">Chapter 1</p>
+<h1>Python 小白急救包（一）：語法與資料</h1>
+
+<p>這章不是教完整的 Python。完整的 Python 教一本書、一學期、甚至一個職涯都教不完。我們只挑一個最小的子集：剛好夠讀懂本課所有範例的那幾個語法。</p>
+
+<p>學完這章你不會變成 Python 工程師。但你會看懂後面所有的程式碼在做什麼，這對「使用 API」來說已經足夠。剩下的細節，等你做完幾個小工具、開始想自己改造範例的時候，自然會學到。</p>
+
+<h2>寫程式之前：怎麼跑 Python</h2>
+
+<p>最快的方式是打開終端機，直接打：</p>
+
+<pre><code>python3</code></pre>
+
+<p>你會看到三個 <code>&gt;&gt;&gt;</code> 符號，這叫 REPL（Read-Eval-Print Loop），可以一行一行試 Python。要離開的話打 <code>exit()</code> 或按 <code>Ctrl + D</code>。</p>
+
+<p>但本課大部分時候我們會把程式存成 <code>.py</code> 檔案，然後執行：</p>
+
+<pre><code>python3 hello.py</code></pre>
+
+<p>兩種方式我們都會用。REPL 適合快速試一行，檔案適合寫真正的工具。</p>
+
+<h2>變數與字串</h2>
+
+<p>變數是給一個值取個名字，方便之後重複使用：</p>
+
+<pre><code>name = "OpenAI"
+year = 2025</code></pre>
+
+<p>Python 不需要事先宣告型別——你給它什麼，它就記住什麼。<code>name</code> 是字串（一串文字），<code>year</code> 是整數。</p>
+
+<p>字串可以用雙引號 <code>"..."</code> 或單引號 <code>'...'</code>，兩個一模一樣：</p>
+
+<pre><code>greeting = "Hello"
+greeting = 'Hello'</code></pre>
+
+<div class="callout note">
+  <span class="label">Note</span>
+  為什麼有兩種寫法？因為當字串本身包含引號時你需要另一種包它。例如 <code>"It's a test"</code> 用雙引號包，這樣裡面的單引號就不會搞混。其他語言（像 Java、C#）只有雙引號，遇到這種情況得用 <code>\'</code> 跳脫，比較囉嗦。
+</div>
+
+<p>把字串接起來用 <code>+</code>：</p>
+
+<pre><code>full = "Hello" + " " + "OpenAI"
+print(full)  # Hello OpenAI</code></pre>
+
+<p>或者用 f-string（formatted string）把變數塞進去，這是現代 Python 最常用的寫法：</p>
+
+<pre><code>name = "OpenAI"
+year = 2025
+print(f"{name} 在 {year} 年很紅")
+# OpenAI 在 2025 年很紅</code></pre>
+
+<p>f-string 就是「字串前面加個 f」，然後用 <code>{}</code> 包住變數。本課所有要組合文字的地方幾乎都用這個。</p>
+
+<h2>list：有順序的清單</h2>
+
+<p><code>list</code> 是一串有順序的東西，用方括號 <code>[]</code> 包起來：</p>
+
+<pre><code>models = ["gpt-4o", "gpt-4o-mini", "whisper-1"]</code></pre>
+
+<p>存取用索引（從 0 開始）：</p>
+
+<pre><code>print(models[0])  # gpt-4o
+print(models[2])  # whisper-1</code></pre>
+
+<div class="callout tip">
+  <span class="label">Tip</span>
+  「從 0 開始」是程式語言的傳統，原因是早期硬體用「記憶體偏移量」做索引——第一個元素的偏移量是 0，第二個是 1，以此類推。現代程式語言大多沿用，雖然有少數例外（Lua、R、MATLAB 從 1 開始）。一開始很彆扭，習慣之後反而會覺得從 1 開始的設計很怪。
+</div>
+
+<p>加新東西到尾巴：</p>
+
+<pre><code>models.append("o1")
+print(models)  # ['gpt-4o', 'gpt-4o-mini', 'whisper-1', 'o1']</code></pre>
+
+<p>算長度：</p>
+
+<pre><code>print(len(models))  # 4</code></pre>
+
+<h2>dict：用名字查資料</h2>
+
+<p><code>dict</code>（dictionary）是「鍵值對」的集合，用大括號 <code>{}</code> 包起來：</p>
+
+<pre><code>pricing = {
+    "gpt-4o": 2.50,
+    "gpt-4o-mini": 0.15,
+    "whisper-1": 0.006,
+}</code></pre>
+
+<p>存取用 key：</p>
+
+<pre><code>print(pricing["gpt-4o"])  # 2.50</code></pre>
+
+<p>加或改值：</p>
+
+<pre><code>pricing["o1"] = 15.00</code></pre>
+
+<p><code>list</code> 跟 <code>dict</code> 是 Python 裡最常用的兩種容器。粗略的判斷方式是：<strong>有順序、會依序處理的，用 list；要用名字查的，用 dict</strong>。本課之後處理 API 回傳資料、設定檔、結構化輸出，幾乎都是這兩個的組合。</p>
+
+<div class="callout note">
+  <span class="label">Note</span>
+  講白話一點，OpenAI API 回傳給你的 JSON 物件，在 Python 裡面就是一個 dict 套 list 套 dict 的結構。看懂這兩個容器，你才看得懂 API 回傳的東西長什麼樣。Chapter 4 會詳細講 JSON。
+</div>
+
+<h2>if：根據狀況做不同的事</h2>
+
+<pre><code>score = 85
+
+if score &gt;= 90:
+    print("優")
+elif score &gt;= 60:
+    print("及格")
+else:
+    print("不及格")</code></pre>
+
+<p>幾個重點：</p>
+
+<ul>
+  <li>條件後面要加冒號 <code>:</code></li>
+  <li>條件成立要執行的程式碼<strong>往內縮排</strong>（通常是 4 個空格）</li>
+  <li><code>elif</code> 是 "else if" 的縮寫</li>
+  <li>結尾不需要分號或大括號</li>
+</ul>
+
+<p>縮排這件事下面會專門講。</p>
+
+<h2>for：對一群東西做同樣的事</h2>
+
+<pre><code>models = ["gpt-4o", "gpt-4o-mini", "whisper-1"]
+
+for model in models:
+    print(f"模型：{model}")</code></pre>
+
+<p><code>for X in Y</code> 的意思是「把 Y 裡面的每個東西，依序取出來叫做 X」。執行結果：</p>
+
+<pre><code>模型：gpt-4o
+模型：gpt-4o-mini
+模型：whisper-1</code></pre>
+
+<p>對 <code>dict</code> 做迴圈預設會拿到 key：</p>
+
+<pre><code>for name in pricing:
+    print(name, pricing[name])</code></pre>
+
+<p>但通常我們會用 <code>.items()</code> 同時拿 key 跟 value：</p>
+
+<pre><code>for name, price in pricing.items():
+    print(f"{name} 每百萬 token {price} 美金")</code></pre>
+
+<h2>函式：把一段操作打包</h2>
+
+<p>如果同一段邏輯要重複用，包成函式：</p>
+
+<pre><code>def greet(name):
+    return f"Hello, {name}!"
+
+print(greet("OpenAI"))   # Hello, OpenAI!
+print(greet("學員"))     # Hello, 學員!</code></pre>
+
+<p>幾個重點：</p>
+
+<ul>
+  <li><code>def</code> 是定義函式的關鍵字</li>
+  <li>函式名後面是參數，用括號包起來</li>
+  <li><code>return</code> 把結果交還給呼叫的人</li>
+  <li>函式內容也是縮排</li>
+</ul>
+
+<p>如果不需要回傳值（例如函式只負責印東西），可以省略 <code>return</code>：</p>
+
+<pre><code>def print_models(models):
+    for model in models:
+        print(f"- {model}")
+
+print_models(["gpt-4o", "o1"])</code></pre>
+
+<h2>縮排：Python 最大的脾氣</h2>
+
+<p>如果你以前寫過 Java、JavaScript、C++，會習慣用大括號 <code>{}</code> 標示「這幾行是一組」。Python 不用大括號——它用<strong>縮排</strong>：</p>
+
+<pre><code>if True:
+    print("這行是 if 的內容")
+    print("這行也是 if 的內容")
+print("這行不是 if 的內容")</code></pre>
+
+<p>縮排相同數量空格的程式碼算一組。縮排不對，程式直接跑不動，會跳 <code>IndentationError</code>。</p>
+
+<div class="callout warning">
+  <span class="label">Warning</span>
+  千萬不要 Tab 跟空格混用。Python 3 會直接報錯。本課推薦你的編輯器（VS Code、PyCharm）一律設定「Tab 自動展開成 4 個空格」。一旦設好，按 Tab 就會出 4 個空格，永遠不會混。
+</div>
+
+<p>這個設計剛開始很煩，但故事其實滿有趣的。</p>
+
+<div class="callout tip">
+  <span class="label">Tip</span>
+  Python 是 1989 年由 Guido van Rossum 在荷蘭設計的。他之前在另一個語言 ABC 工作過，那個語言就是用縮排來組程式碼。Guido 的觀察是：<strong>反正人類讀程式碼時就是看縮排判斷邏輯，那為什麼還要再寫一次大括號？讓縮排本身就是語法，就強迫所有人寫出整齊的程式碼</strong>。三十多年後，Python 變成全世界用戶最多的語言之一，這個設計被證明是對的——你絕對不會看到一個 Python 專案因為「縮排風格不一致」吵架，因為根本不能不一致。
+</div>
+
+<h2>把這些湊在一起</h2>
+
+<p>本課從 Chapter 5 開始的範例會大量用到上面這些。先看個小例子，把這章學的東西全部用一次：</p>
+
+<pre><code>def find_cheap_models(pricing, threshold):
+    cheap = []
+    for name, price in pricing.items():
+        if price &lt; threshold:
+            cheap.append(name)
+    return cheap
+
+pricing = {
+    "gpt-4o": 2.50,
+    "gpt-4o-mini": 0.15,
+    "whisper-1": 0.006,
+}
+
+result = find_cheap_models(pricing, 1.0)
+print(f"便宜的模型：{result}")</code></pre>
+
+<p>讀讀看你能不能跟著流程跑：函式定義、空 list、for 迴圈、if 條件、append、return、f-string——全部都在裡面。如果這段你大致看得懂，這章就過了。</p>
+
+<h2>小結</h2>
+
+<p>這章我們碰過：</p>
+
+<ol>
+  <li>變數與字串（含 f-string）</li>
+  <li><code>list</code>：有順序的容器</li>
+  <li><code>dict</code>：用名字查資料的容器</li>
+  <li><code>if / elif / else</code>：條件判斷</li>
+  <li><code>for</code>：迴圈</li>
+  <li><code>def</code>：定義函式</li>
+  <li>縮排：Python 用空白標示邏輯區塊</li>
+</ol>
+
+<p>下一章我們會碰檔案讀寫跟錯誤處理——這兩個你跑任何「真的有用」的程式都會用到。</p>
+
+<h2>練習</h2>
+
+<ol>
+  <li>建立一個 list 存五個你常用的網站名稱，用 for 迴圈把它們印出來。</li>
+  <li>建立一個 dict，key 是水果名、value 是價格，找出價格大於 50 的水果。</li>
+  <li>寫一個函式 <code>count_chinese(text)</code>，計算一段字串裡有多少個中文字（提示：用 for 對 <code>text</code> 做迴圈，每個字元如果在範圍 <code>'一' &lt;= c &lt;= '鿿'</code> 內就算一個）。</li>
+  <li>故意把一行縮排寫錯，看看 Python 跳什麼錯誤訊息。把錯誤訊息看懂，是學程式的重要技能。</li>
+</ol>
+<div class="chapter-nav">
+  <a class="nav-prev" href="#ch00">← 上一章：開課前準備</a>
+  <a class="nav-top" href="#top">↑ 回目錄</a>
+  <a class="nav-next" href="#ch02">下一章：Python 小白急救包（二）：檔案與錯誤處理 →</a>
+</div>
+</section>
+
+<section id="ch02" class="chapter">
+<p class="chapter-label">Chapter 2</p>
+<h1>Python 小白急救包（二）：檔案與錯誤處理</h1>
+
+<p>上一章我們學了 Python 的基本語法，但所有範例都活在「記憶體裡」——程式跑完，東西就不見了。這章我們要做兩件事：</p>
+
+<ol>
+  <li><strong>把資料寫進檔案、從檔案讀出來</strong>——這樣程式跑完結果還留得住</li>
+  <li><strong>處理錯誤</strong>——這樣遇到意外狀況（檔案不存在、API 沒回應）程式不會直接崩潰</li>
+</ol>
+
+<p>這兩件事看起來不性感，但<strong>所有實際能用的工具都需要它們</strong>。本課從 Chapter 7 開始做的每一個小工具，都會用到這章學的東西。</p>
+
+<h2>用 <code>open()</code> 讀檔</h2>
+
+<p>最基本的讀檔寫法：</p>
+
+<pre><code>file = open("notes.txt", "r", encoding="utf-8")
+text = file.read()
+file.close()
+print(text)</code></pre>
+
+<p>這段做了三件事：開啟檔案、讀出全部內容、關閉檔案。<code>"r"</code> 代表 "read"（讀取模式），<code>encoding="utf-8"</code> 告訴 Python「這個檔案是 UTF-8 編碼」。</p>
+
+<p>但這種寫法有個缺點：<strong>如果中間出錯（檔案壞了、磁碟滿了），<code>close()</code> 不會被執行，檔案會一直被佔用</strong>。所以實際寫程式時，我們幾乎都用下面這種寫法。</p>
+
+<h2><code>with open()</code>：永遠正確關閉檔案</h2>
+
+<pre><code>with open("notes.txt", "r", encoding="utf-8") as file:
+    text = file.read()
+
+print(text)</code></pre>
+
+<p><code>with</code> 這個語法叫 <strong>context manager</strong>。它的承諾是：不管裡面的程式碼正常結束、還是中途爆炸，<code>with</code> 區塊結束時都會幫你正確收尾——以檔案來說就是自動 <code>close()</code>。</p>
+
+<div class="callout tip">
+  <span class="label">Tip</span>
+  <code>with</code> 是 Python 2005 年引入的語法（PEP 343），引入之前所有人都得寫 <code>try / finally</code> 手動關檔。發明它的動機很 Pythonic：<strong>正確的寫法應該比錯的寫法還短</strong>。如果忘記關檔很容易出 bug，那就讓「正確關檔」變成更省力的選項。從那之後，「忘記關檔」這個 bug 在 Python 圈基本上絕跡。
+</div>
+
+<p>寫檔長這樣：</p>
+
+<pre><code>with open("output.txt", "w", encoding="utf-8") as file:
+    file.write("Hello, OpenAI\n")</code></pre>
+
+<p><code>"w"</code> 代表 "write"（寫入模式），會把檔案內容完全覆蓋掉。如果你想加在尾巴而不是覆蓋，用 <code>"a"</code>（append）。</p>
+
+<div class="callout warning">
+  <span class="label">Warning</span>
+  <code>"w"</code> 模式如果遇到既存的檔案，會<strong>毫無提醒地直接覆蓋掉</strong>。寫程式時很容易誤刪重要檔案。建議寫入前先確認目標檔案不存在，或者用版本控制（git）保護重要檔案。
+</div>
+
+<h2>編碼：為什麼一定要寫 UTF-8</h2>
+
+<p>如果你不寫 <code>encoding="utf-8"</code>，Python 會猜——而它在不同平台猜不一樣。macOS 跟 Linux 通常猜 UTF-8，但<strong>Windows 預設是 cp950 或 Big5</strong>（中文版）或 cp1252（英文版）。這代表同一個程式在不同電腦跑出來中文會亂碼。</p>
+
+<pre><code># 不好的寫法
+with open("notes.txt") as f:
+    text = f.read()
+
+# 正確的寫法
+with open("notes.txt", encoding="utf-8") as f:
+    text = f.read()</code></pre>
+
+<p><strong>請養成永遠寫 <code>encoding="utf-8"</code> 的習慣</strong>。本課所有範例都會這樣寫。</p>
+
+<div class="callout note">
+  <span class="label">Note</span>
+  UTF-8 是當今網際網路 98% 以上內容的編碼方式。它的設計很聰明：英文字母用 1 byte（跟 ASCII 完全相容）、中文用 3 bytes、emoji 用 4 bytes，沒用到的字母不會浪費空間。Big5 跟 cp950 是 1980 年代台灣的中文編碼，現在主要只在 Windows 中文版的「預設值」這種地方還留著——能避就避。
+</div>
+
+<h2><code>Path</code>：比字串聰明的路徑</h2>
+
+<p>到目前為止我們都用字串當路徑：<code>"notes.txt"</code>、<code>"output.txt"</code>。可以用，但 Python 提供了更好的選擇：<code>Path</code>。</p>
+
+<pre><code>from pathlib import Path
+
+input_path = Path("notes.txt")
+output_path = Path("results") / "summary.txt"</code></pre>
+
+<p><code>Path</code> 比字串多了幾個好處：</p>
+
+<pre><code>input_path.exists()       # 檔案存在嗎？True / False
+input_path.suffix         # 副檔名，例如 '.txt'
+input_path.stem           # 不含副檔名的檔名，例如 'notes'
+input_path.parent         # 上一層資料夾</code></pre>
+
+<p>而且 <code>Path</code> 用 <code>/</code> 串接子路徑，這在三個平台都會自動處理「Windows 是 <code>\</code> 但 macOS/Linux 是 <code>/</code>」的差異：</p>
+
+<pre><code>data_dir = Path("data")
+audio = data_dir / "meeting.mp3"
+# macOS/Linux: data/meeting.mp3
+# Windows:     data\meeting.mp3</code></pre>
+
+<p>讀寫檔案也有更簡潔的寫法：</p>
+
+<pre><code>text = Path("notes.txt").read_text(encoding="utf-8")
+Path("output.txt").write_text("Hello", encoding="utf-8")</code></pre>
+
+<p>本課從這裡開始，路徑一律用 <code>Path</code>，不再用字串。</p>
+
+<h2>try / except：當事情出錯時</h2>
+
+<p>到目前為止我們的程式都是「樂觀派」——假設檔案一定存在、API 一定回應、輸入永遠合法。現實當然不是這樣。</p>
+
+<pre><code>from pathlib import Path
+
+text = Path("notes.txt").read_text(encoding="utf-8")
+print(text)</code></pre>
+
+<p>如果 <code>notes.txt</code> 不存在，這段程式會直接崩潰，跳出一大段紅字：</p>
+
+<pre><code>FileNotFoundError: [Errno 2] No such file or directory: 'notes.txt'</code></pre>
+
+<p>對使用者來說這毫無幫助。我們要做的是「預期會出錯，並且優雅處理」：</p>
+
+<pre><code>from pathlib import Path
+
+try:
+    text = Path("notes.txt").read_text(encoding="utf-8")
+    print(text)
+except FileNotFoundError:
+    print("找不到 notes.txt，請確認檔案是否存在")</code></pre>
+
+<p><code>try</code> 區塊裡放「可能出錯的程式」，<code>except FileNotFoundError</code> 區塊接住「如果出了這種錯就跑這段」。</p>
+
+<p>可以接住多種錯誤：</p>
+
+<pre><code>try:
+    text = Path("notes.txt").read_text(encoding="utf-8")
+except FileNotFoundError:
+    print("檔案不存在")
+except PermissionError:
+    print("沒有讀取權限")</code></pre>
+
+<div class="callout warning">
+  <span class="label">Warning</span>
+  不要寫 <code>except Exception:</code> 或者更糟的 <code>except:</code> 然後什麼都不處理。這會把所有錯誤（包括你的程式 bug）都吃掉，讓你完全看不出哪裡出問題。<strong>永遠精確指定你預期要處理哪些錯誤</strong>。
+</div>
+
+<h2><code>if __name__ == "__main__"</code>：讓檔案既能執行也能被引用</h2>
+
+<p>你會在很多 Python 範例（包括本課之後的所有檔案）看到這個寫法：</p>
+
+<pre><code>def main():
+    print("Hello")
+
+if __name__ == "__main__":
+    main()</code></pre>
+
+<p>這段在做什麼？</p>
+
+<p>Python 檔案有兩種被使用的方式：<strong>直接執行</strong>（<code>python hello.py</code>），或者<strong>被另一個檔案匯入</strong>（<code>from hello import main</code>）。</p>
+
+<p>當你直接執行檔案，Python 會把 <code>__name__</code> 這個內建變數設成 <code>"__main__"</code>。但如果這個檔案被別人匯入，<code>__name__</code> 會變成檔案名（<code>"hello"</code>）。</p>
+
+<p>所以 <code>if __name__ == "__main__":</code> 的意思是：「只有當這個檔案是被直接執行的時候，才跑下面這段。」這讓你可以把同一個檔案的函式給別人用，但又不會在別人匯入時意外把你的測試程式也跑一遍。</p>
+
+<div class="callout note">
+  <span class="label">Note</span>
+  這個寫法早期讓很多新手覺得「為什麼要這麼囉嗦」，但它解決了一個很實際的問題：你寫的小工具，未來可能會變成大工具的一部分。一開始就養成這個習慣，到時候不用回頭改。本課後面所有的 <code>.py</code> 檔案都會這樣寫。
+</div>
+
+<h2>把它湊起來：讀檔、處理、寫檔</h2>
+
+<p>我們把這章學的東西組合成一個完整的小程式：讀一個文字檔、計算字數、把結果寫到另一個檔案。</p>
+
+<pre><code>from pathlib import Path
+
+def count_words(text: str) -&gt; int:
+    return len(text.split())
+
+def main() -&gt; None:
+    input_path = Path("notes.txt")
+    output_path = Path("summary.txt")
+
+    try:
+        text = input_path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        print(f"找不到 {input_path}，請先建立檔案")
+        return
+
+    word_count = count_words(text)
+    summary = f"檔案 {input_path.name} 有 {word_count} 個字（以空白分隔）"
+    output_path.write_text(summary, encoding="utf-8")
+    print(summary)
+
+if __name__ == "__main__":
+    main()</code></pre>
+
+<p>這段把 Ch1 跟 Ch2 學的東西全部用上：函式、型別標註（<code>text: str</code>、<code>-&gt; int</code>，這只是註解作用，不影響執行）、<code>Path</code>、<code>try / except</code>、f-string、<code>if __name__ == "__main__"</code>。</p>
+
+<p>存成 <code>wordcount.py</code>，建立一個 <code>notes.txt</code> 隨便打幾個字，跑：</p>
+
+<pre><code>python3 wordcount.py</code></pre>
+
+<p>應該會看到字數，並且產生 <code>summary.txt</code>。試試把 <code>notes.txt</code> 刪掉再跑一次，看程式有沒有優雅報錯。</p>
+
+<h2>小結</h2>
+
+<p>這章補齊了「寫真正能用的程式」需要的兩塊：</p>
+
+<ol>
+  <li><strong>檔案讀寫</strong>：用 <code>with open(...)</code> 加 <code>encoding="utf-8"</code>，或更現代的 <code>Path.read_text() / .write_text()</code></li>
+  <li><strong>錯誤處理</strong>：用 <code>try / except 具體錯誤名稱</code>，不要 catch-all</li>
+  <li><strong><code>Path</code></strong>：跨平台、語意清楚的路徑物件</li>
+  <li><strong><code>if __name__ == "__main__"</code></strong>：讓檔案既能執行也能被引用</li>
+</ol>
+
+<p>到這裡，Python 的最小子集學完了。接下來的 Chapter 3 跟 Chapter 4 會回到「概念補課」——什麼是 API、什麼是 HTTP、什麼是 JSON。理解這些，Chapter 5 開始呼叫 OpenAI 才不會像在念咒。</p>
+
+<h2>練習</h2>
+
+<ol>
+  <li>建立一個 <code>notes.txt</code>，隨便寫幾段中文。用本章的範例算字數，但改成用 <code>len(text)</code>（總字元數）而不是 <code>text.split()</code>。比較結果差異。</li>
+  <li>修改範例，讓使用者可以從命令列指定輸入檔名（提示：用 <code>sys.argv[1]</code>）。</li>
+  <li>故意指定一個不存在的檔名跑一次，確認 <code>try/except</code> 有接住，程式沒崩潰。</li>
+  <li>在 <code>Path</code> 物件上跑 <code>.suffix</code>、<code>.stem</code>、<code>.parent</code>，觀察它們分別回傳什麼。</li>
+</ol>
+<div class="chapter-nav">
+  <a class="nav-prev" href="#ch01">← 上一章：Python 小白急救包（一）：語法與資料</a>
+  <a class="nav-top" href="#top">↑ 回目錄</a>
+  <a class="nav-next" href="#ch03">下一章：API 是什麼 →</a>
+</div>
+</section>
+
+<section id="ch03" class="chapter">
+<p class="chapter-label">Chapter 3</p>
+<h1>API 是什麼</h1>
+
+<p>這章不寫程式。我們暫停一下，把「API 到底是什麼」這個觀念真的講清楚。後面所有章節都會用到這個觀念，但如果你心裡沒有清晰的模型，再多範例也只是抄。</p>
+
+<p>很多入門教材對 API 的解釋是「Application Programming Interface 應用程式介面」——這個翻譯沒錯，但等於沒講。我們從一個更具體的角度切入。</p>
+
+<h2>ChatGPT 跟 OpenAI API 差在哪</h2>
+
+<p>你大概用過 ChatGPT。打開瀏覽器、登入、輸入問題、看模型回答。這是 OpenAI 提供的<strong>產品</strong>——一個給人類用的網頁介面，背後有對話歷史、付費機制、共享連結、語音輸入這些功能，全部包好給你。</p>
+
+<p>但如果你想做的事是：</p>
+
+<ul>
+  <li>把每天的會議錄音自動轉成逐字稿並寄到 email</li>
+  <li>在公司內部網站上加一個「自動回覆客戶問題」的按鈕</li>
+  <li>寫一個腳本把 5000 篇文章一次整理成摘要</li>
+</ul>
+
+<p>ChatGPT 做不到——它沒有「給程式呼叫」的入口。你不可能寫程式自動去 ChatGPT 網頁打字。</p>
+
+<p>這就是 <strong>API（Application Programming Interface）的角色</strong>：OpenAI 把同一個模型（甚至更強的模型）開放成「給程式呼叫的入口」。你的 Python 程式可以送一個請求過去，OpenAI 的伺服器跑模型、回給你結果。沒有網頁、沒有登入畫面、沒有對話歷史——純粹是一進一出的計算服務。</p>
+
+<p>可以這樣理解：</p>
+
+<table>
+  <thead>
+    <tr><th></th><th>ChatGPT</th><th>OpenAI API</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>對象</td><td>人類</td><td>程式</td></tr>
+    <tr><td>介面</td><td>網頁、App</td><td>HTTP request</td></tr>
+    <tr><td>計費</td><td>每月訂閱（或免費）</td><td>用多少付多少（per token）</td></tr>
+    <tr><td>對話歷史</td><td>自動保存</td><td>自己處理</td></tr>
+    <tr><td>適合</td><td>日常使用、互動探索</td><td>自動化、批量處理、整合進工具</td></tr>
+  </tbody>
+</table>
+
+<p>兩個都很好，但<strong>用途不同</strong>。本課要教的是後者。</p>
+
+<h2>一個更貼切的比喻</h2>
+
+<p>如果你經營一間餐廳，你會有：</p>
+
+<ul>
+  <li><strong>內用大廳</strong>：給客人坐下來慢慢吃，有桌椅、餐具、服務生、菜單。</li>
+  <li><strong>後門</strong>：給外送平台 Uber Eats 來取餐——沒有桌椅，車一停、餐一交、車就走。</li>
+</ul>
+
+<p>兩邊的廚房是同一個。但前面那個是給人類用的「產品」，後面那個是給「其他系統」用的接口。</p>
+
+<p>ChatGPT 是內用大廳。OpenAI API 是後門。同一批廚師、同一份食材，但服務的對象與形式完全不同。</p>
+
+<div class="callout tip">
+  <span class="label">Tip</span>
+  這個「同一套能力，兩種接口」的模式不只在 OpenAI 出現。Google 有 Google Maps 網站，也有 Google Maps API；Stripe 有付款網頁，也有 Stripe API；YouTube 有網站，也有 YouTube API。<strong>所有規模到一定程度的軟體公司，幾乎都會同時提供「給人用」與「給程式用」兩種介面</strong>。這幾乎是現代軟體的標準商業模式，被 a16z 等矽谷投資人稱為「API 經濟」。
+</div>
+
+<h2>一通 API call 在幹嘛</h2>
+
+<p>具體一點。當你在 Python 寫：</p>
+
+<pre><code>client.responses.create(
+    model="gpt-4o",
+    input="用一句話解釋什麼是 API。",
+)</code></pre>
+
+<p>電腦在做的事其實是：</p>
+
+<ol>
+  <li>把你的問題打包成一份「文件」（叫做 JSON，下一章詳細講）</li>
+  <li>透過網路送到 OpenAI 的伺服器（網址是 <code>api.openai.com</code>）</li>
+  <li>順便附上你的 API key 證明「我是付過錢的客戶」</li>
+  <li>等對方收到、跑模型、回應</li>
+  <li>把對方回的「文件」拆開，把模型講的話拿出來給你</li>
+</ol>
+
+<p>整個流程跟你打電話訂披薩很像：</p>
+
+<ul>
+  <li>撥號（連到伺服器）</li>
+  <li>報名字（API key）</li>
+  <li>點餐（input + model）</li>
+  <li>等對方確認（網路傳輸）</li>
+  <li>收到回覆（response）</li>
+</ul>
+
+<p>差別只是這通電話是程式打的，對話內容是 JSON 格式，整個流程通常在 2 秒內完成。</p>
+
+<h2>API key 是什麼</h2>
+
+<p>API key 是一串看起來像 <code>sk-...</code> 的字串，是 OpenAI 給你的「身份證」。每次你呼叫 API，這串字串會跟著請求一起送過去，OpenAI 才知道：</p>
+
+<ul>
+  <li>這個請求是誰打來的</li>
+  <li>用量要記在誰的帳上</li>
+  <li>有沒有超過額度</li>
+</ul>
+
+<p>換句話說，<strong>有你的 API key 的人，等於可以用你的帳號花錢</strong>。所以保護 API key 是這套課貫穿始終的主題，後面 Chapter 5 跟 Chapter 16 會重點講。</p>
+
+<div class="callout warning">
+  <span class="label">Warning</span>
+  三個絕對不要做的事：(1) 把 API key 寫死在程式碼裡並 push 到 GitHub；(2) 把 API key 貼在前端 JavaScript（瀏覽器任何人都看得到）；(3) 把含有 API key 的截圖傳給任何人。GitHub 上有偵測 bot，洩漏的 key 通常幾分鐘內就會被自動撤銷——但也可能在被撤銷前就被別人拿去打爆額度。本課所有範例都用環境變數 <code>OPENAI_API_KEY</code> 來傳遞 key，從不寫死在程式碼。
+</div>
+
+<h2>Token、模型、費用的基本直覺</h2>
+
+<p>每次呼叫 API 都要花錢，金額取決於三件事：</p>
+
+<ul>
+  <li><strong>用哪個模型</strong>：<code>gpt-4o</code> 比 <code>gpt-4o-mini</code> 貴，<code>o1</code> 比兩者都貴</li>
+  <li><strong>送進去多少 token</strong>（你的問題、檔案內容）</li>
+  <li><strong>模型輸出多少 token</strong>（回答長度）</li>
+</ul>
+
+<p><strong>Token 不等於字</strong>。粗略對應：1 token ≈ 0.75 個英文單字 ≈ 0.5 到 1 個中文字。本課 Chapter 16 會講怎麼用 <code>tiktoken</code> 工具精確計算。</p>
+
+<p>現在你只需要建立一個直覺：</p>
+
+<ul>
+  <li><strong>問一句話、回一句話</strong>：通常不到 0.001 美金</li>
+  <li><strong>整理一份 10 分鐘會議逐字稿</strong>（語音轉文字 + 摘要）：通常幾美分到一兩毛</li>
+  <li><strong>批量處理一千份文件</strong>：就要認真算了</li>
+</ul>
+
+<div class="callout note">
+  <span class="label">Note</span>
+  這個量級對個人或小型工具來說很便宜（一天搞個小專案花 1-2 美金就玩得很開心），但對「跑在生產環境、每天幾萬個請求」的服務來說，成本是真實的。本課後面我們會做的工具屬於前者，但 Chapter 16 還是會教怎麼估算成本，因為這個技能你遲早用得到。
+</div>
+
+<h2>為什麼不用 ChatGPT 就好</h2>
+
+<p>你可能會想：「我每天用 ChatGPT 也能整理會議紀錄，為什麼還要學 API？」</p>
+
+<p>務實的答案有四個：</p>
+
+<p><strong>1. 自動化。</strong> ChatGPT 你得手動貼內容、手動複製結果。API 可以接上「定時抓 email」「自動掃資料夾」「直接寫進資料庫」，變成不需要你介入的流程。</p>
+
+<p><strong>2. 整合進你自己的工具。</strong> ChatGPT 是 OpenAI 的網頁，你不能在裡面加你公司的按鈕、不能整合公司的客戶資料。但 API 可以變成你自己 app 的一部分。</p>
+
+<p><strong>3. 結構化處理。</strong> API 可以強制模型輸出固定格式 JSON（本課 Chapter 13 會教），讓結果直接給其他程式使用。ChatGPT 雖然也能做，但需要每次手動複製貼上。</p>
+
+<p><strong>4. 細部控制。</strong> API 給你很多 ChatGPT 沒有的旋鈕：溫度、輸出長度、結構化 schema、streaming、tool calling……這些都是「做工具」時的必要工具。</p>
+
+<p><strong>反過來說</strong>，如果你只是想自己問問題、隨意聊聊、探索想法，繼續用 ChatGPT 就好。<strong>API 是給「想做工具」的人準備的</strong>——這也是本課的所有讀者應該是的角色。</p>
+
+<h2>小結</h2>
+
+<p>這章我們把幾個關鍵觀念講清楚了：</p>
+
+<ol>
+  <li><strong>ChatGPT 是給人用的產品，API 是給程式呼叫的接口</strong>——共用同一批模型，但形式完全不同</li>
+  <li><strong>API call 就是「程式之間的電話」</strong>——透過網路送請求、拿回應</li>
+  <li><strong>API key 是你的身份證</strong>，洩漏等於有人可以花你的錢</li>
+  <li><strong>API 計費按 token</strong>——粗略對應字數，本課後面會教精確估算</li>
+  <li><strong>API 適合自動化、整合、結構化處理</strong>；ChatGPT 適合互動、探索</li>
+</ol>
+
+<p>下一章 Chapter 4 會把「API call 的內部結構」拆開來看——什麼是 HTTP、什麼是 JSON、status code 是在說什麼。理解了那層，OpenAI SDK 對你來說就不是黑箱了。</p>
+
+<h2>練習</h2>
+
+<ol>
+  <li>想三個你日常生活或工作中「重複做、很煩、希望自動化」的場景。哪些可以用 OpenAI API 加上一點 Python 處理？</li>
+  <li>看 OpenAI 的定價頁（自己 Google），找出 <code>gpt-4o</code>、<code>gpt-4o-mini</code>、<code>whisper-1</code> 三個的每百萬 token 或每分鐘音訊的價格。</li>
+  <li>想一個你身邊的人會用的小工具：給定一段中文，產生英文摘要。如果這個工具一天會被用 100 次，每次平均 500 字輸入 + 200 字輸出，用 <code>gpt-4o-mini</code> 大概一個月要多少錢？（粗估即可，下一章我們會用真實數字算）</li>
+</ol>
+<div class="chapter-nav">
+  <a class="nav-prev" href="#ch02">← 上一章：Python 小白急救包（二）：檔案與錯誤處理</a>
+  <a class="nav-top" href="#top">↑ 回目錄</a>
+  <a class="nav-next" href="#ch04">下一章：HTTP 與 JSON 基礎 →</a>
+</div>
+</section>
+
+<section id="ch04" class="chapter">
+<p class="chapter-label">Chapter 4</p>
+<h1>HTTP 與 JSON 基礎</h1>
+
+<p>上一章我們講過，API call 就是「程式之間的一通電話」。這章我們把這通電話拆開看：訊息是怎麼包裝的、傳哪邊去的、收到的回應裡有什麼。</p>
+
+<p>理解這層你會獲得兩個東西：</p>
+
+<ol>
+  <li>看到陌生 API 文件不會慌（包括 OpenAI 文件）</li>
+  <li>出錯的時候看得懂錯誤訊息（401、429、500 各是什麼意思）</li>
+</ol>
+
+<p>我們會盡量不下沉到太底層的細節——那是後端工程師的工作。我們只挖到「會用、能除錯」的深度。</p>
+
+<h2>HTTP 是什麼</h2>
+
+<p>HTTP（HyperText Transfer Protocol）是 1991 年由 Tim Berners-Lee 發明的協議，原本只是為了讓網頁瀏覽器可以從伺服器抓網頁。三十多年後，HTTP 變成了<strong>幾乎所有網路服務之間溝通的標準語言</strong>——不只網頁，連 OpenAI API、Stripe 付款、Google Maps、你家路由器的設定頁，背後都是 HTTP。</p>
+
+<div class="callout tip">
+  <span class="label">Tip</span>
+  HTTP 變成「萬用通訊協定」是有歷史偶然性的。1990 年代有很多其他協定（FTP、Gopher、WAIS），但 HTTP 因為跟著瀏覽器一起爆紅，加上設計足夠簡單彈性，後來其他協定要做的事都被 HTTP 吃下來。今天的「HTTP API」其實是 HTTP 的「副業」——但這個副業比正業還大。
+</div>
+
+<p>一個 HTTP 請求（request）有四個部分：</p>
+
+<ol>
+  <li><strong>Method</strong>：動詞，常見的有 <code>GET</code>（要資料）、<code>POST</code>（送資料）、<code>PUT</code>、<code>DELETE</code></li>
+  <li><strong>URL</strong>：要送到哪裡，例如 <code>https://api.openai.com/v1/responses</code></li>
+  <li><strong>Headers</strong>：附加資訊，例如「我是誰」「我送什麼格式的資料」</li>
+  <li><strong>Body</strong>：資料本體，通常是 JSON</li>
+</ol>
+
+<p>回應（response）有三個部分：</p>
+
+<ol>
+  <li><strong>Status code</strong>：三位數，告訴你成功還失敗</li>
+  <li><strong>Headers</strong>：類似 request，但是反向</li>
+  <li><strong>Body</strong>：回傳的資料，也通常是 JSON</li>
+</ol>
+
+<p>OpenAI 呼叫 API 的時候，背後就是這樣的一封信。</p>
+
+<h2>一個真實的 OpenAI API 請求長這樣</h2>
+
+<p>如果你不用 SDK、用最原始的 HTTP 工具（例如 <code>curl</code>）呼叫 OpenAI，會像這樣：</p>
+
+<pre><code>curl https://api.openai.com/v1/responses \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4o",
+    "input": "用一句話解釋什麼是 API。"
+  }'</code></pre>
+
+<p>把這封信拆開：</p>
+
+<ul>
+  <li><strong>URL</strong>：<code>https://api.openai.com/v1/responses</code> 是 OpenAI 的 Responses API 入口</li>
+  <li><strong>Method</strong>：<code>-d</code> 自動讓 curl 用 <code>POST</code>（因為有資料要送）</li>
+  <li><strong>Headers</strong>：
+    <ul>
+      <li><code>Authorization: Bearer YOUR_API_KEY</code> 告訴 OpenAI「我是誰」</li>
+      <li><code>Content-Type: application/json</code> 告訴 OpenAI「我送的資料是 JSON」</li>
+    </ul>
+  </li>
+  <li><strong>Body</strong>：那串 <code>{"model": "gpt-4o", ...}</code> 就是 JSON</li>
+</ul>
+
+<p>OpenAI 收到後會回你一封信，body 也是一個 JSON，內容類似：</p>
+
+<pre><code>{
+  "id": "resp_abc123",
+  "model": "gpt-4o",
+  "output": [
+    {
+      "type": "message",
+      "content": [
+        {
+          "type": "output_text",
+          "text": "API 是讓不同程式溝通的標準化介面。"
+        }
+      ]
+    }
+  ],
+  "usage": {
+    "input_tokens": 12,
+    "output_tokens": 15
+  }
+}</code></pre>
+
+<p>OpenAI Python SDK 在做的事，<strong>就是把你呼叫的 <code>client.responses.create(...)</code> 翻譯成上面那封信、送出去、然後把回傳的 JSON 拆開包成 Python 物件給你</strong>。沒有魔法，全部都是 HTTP。</p>
+
+<div class="callout note">
+  <span class="label">Note</span>
+  「Bearer Token」是 HTTP 的身份驗證方式之一，意思是「持有這張票的人就有權限」。所以你的 API key 就是那張票——誰拿到都能用。這也是為什麼保護 key 這麼重要。
+</div>
+
+<h2>JSON 是什麼</h2>
+
+<p>JSON（JavaScript Object Notation）是一種「結構化資料的文字格式」。它長得跟 Python 的 <code>dict</code> 跟 <code>list</code> 非常像：</p>
+
+<pre><code>{
+  "name": "OpenAI",
+  "founded": 2015,
+  "models": ["gpt-4o", "gpt-4o-mini", "whisper-1"],
+  "active": true
+}</code></pre>
+
+<p>JSON 支援的資料型別只有六種：</p>
+
+<table>
+  <thead>
+    <tr><th>JSON 型別</th><th>範例</th><th>對應的 Python</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>string</td><td><code>"hello"</code></td><td><code>str</code></td></tr>
+    <tr><td>number</td><td><code>42</code>、<code>3.14</code></td><td><code>int</code> / <code>float</code></td></tr>
+    <tr><td>boolean</td><td><code>true</code> / <code>false</code></td><td><code>True</code> / <code>False</code></td></tr>
+    <tr><td>null</td><td><code>null</code></td><td><code>None</code></td></tr>
+    <tr><td>array</td><td><code>[1, 2, 3]</code></td><td><code>list</code></td></tr>
+    <tr><td>object</td><td><code>{"a": 1}</code></td><td><code>dict</code></td></tr>
+  </tbody>
+</table>
+
+<p>就這六種。沒有 datetime、沒有 set、沒有函式——故意設計得很小，因為<strong>要每個程式語言都能解讀，得用最低公分母</strong>。日期通常用字串表示（例如 <code>"2025-01-15T10:30:00Z"</code>），由程式自己解析。</p>
+
+<div class="callout tip">
+  <span class="label">Tip</span>
+  JSON 是 2001 年由 Douglas Crockford 推廣的格式。在那之前，網路上的標準是 XML（看起來像 HTML 那種）。XML 很強大，但也很囉嗦——同一份資料，XML 通常比 JSON 多兩倍以上的字。JSON 的設計哲學是「<strong>剛剛好就好</strong>」，結果完勝。十年內 XML 在 web API 領域基本被淘汰，今天幾乎所有現代 API 都用 JSON，包括 OpenAI、Stripe、GitHub、Twitter（X）。
+</div>
+
+<h2>JSON 的常見坑</h2>
+
+<p>JSON 看起來簡單，但有幾個地雷新手必踩：</p>
+
+<p><strong>1. 不能有逗號在最後一個元素後面</strong></p>
+
+<pre><code>{
+  "a": 1,
+  "b": 2,
+}</code></pre>
+
+<p>最後一個 <code>2,</code> 那個逗號在 Python <code>dict</code> 可以、在 JavaScript 物件可以，<strong>但 JSON 不行</strong>。這叫「trailing comma」，標準 JSON 會直接 parse 失敗。</p>
+
+<p><strong>2. 字串只能用雙引號</strong></p>
+
+<pre><code>{ 'name': 'OpenAI' }</code></pre>
+
+<p>JSON 不允許單引號，必須用雙引號。</p>
+
+<p><strong>3. 不能寫註解</strong></p>
+
+<p>JSON 標準不支援註解（雖然有些 parser 會接受 <code>//...</code>，但別依賴）。要加說明只能用一個 key 假裝是註解，例如 <code>"_comment": "這欄之後要刪掉"</code>。</p>
+
+<div class="callout warning">
+  <span class="label">Warning</span>
+  Python 的 dict 跟 JSON 看起來很像，但有幾個差異會害你：(1) Python 用 <code>True / False / None</code>，JSON 用小寫的 <code>true / false / null</code>；(2) Python 允許單引號跟尾巴逗號，JSON 不允許。在 Python 裡寫 dict 隨意，但<strong>輸出成 JSON 給別人時要小心</strong>。用 <code>json.dumps()</code> 而不是手動拼字串。
+</div>
+
+<h2>Python 裡怎麼操作 JSON</h2>
+
+<p>Python 內建 <code>json</code> 模組，兩個最常用的函式：</p>
+
+<pre><code>import json
+
+# Python 物件 → JSON 字串
+data = {"model": "gpt-4o", "input": "Hello"}
+json_str = json.dumps(data)
+print(json_str)
+# {"model": "gpt-4o", "input": "Hello"}
+
+# JSON 字串 → Python 物件
+parsed = json.loads(json_str)
+print(parsed["model"])
+# gpt-4o</code></pre>
+
+<p><code>dumps</code> 是 "dump string"（轉出去成字串），<code>loads</code> 是 "load string"（從字串讀進來）。讀寫檔案用 <code>dump</code> 跟 <code>load</code>（不加 s）：</p>
+
+<pre><code>with open("config.json", "w", encoding="utf-8") as f:
+    json.dump(data, f, ensure_ascii=False, indent=2)
+
+with open("config.json", "r", encoding="utf-8") as f:
+    config = json.load(f)</code></pre>
+
+<p><code>ensure_ascii=False</code> 讓中文以原樣輸出而不是 <code>中文</code>，<code>indent=2</code> 讓檔案有縮排，人類看得懂。</p>
+
+<h2>HTTP Status Code：三位數的故事</h2>
+
+<p>當 OpenAI 回應你，status code 會告訴你成敗。三位數的開頭代表大類：</p>
+
+<ul>
+  <li><strong>2xx：成功</strong>。你要的東西在 body 裡，盡情用</li>
+  <li><strong>3xx：重新導向</strong>。「你要的東西搬家了，去這個新網址」</li>
+  <li><strong>4xx：你的請求有問題</strong>。少帶 key、格式錯、權限不夠</li>
+  <li><strong>5xx：對方伺服器壞了</strong>。不是你的問題，重試或等等</li>
+</ul>
+
+<p>對 OpenAI API 來說，你會踩到的主要是 4xx：</p>
+
+<table>
+  <thead>
+    <tr><th>Code</th><th>名稱</th><th>通常意思</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>200</td><td>OK</td><td>成功</td></tr>
+    <tr><td>400</td><td>Bad Request</td><td>你送的 JSON 格式錯誤，或缺必要欄位</td></tr>
+    <tr><td>401</td><td>Unauthorized</td><td>API key 錯了、過期了、或沒帶</td></tr>
+    <tr><td>403</td><td>Forbidden</td><td>API key 對，但這個帳號沒這個模型的權限</td></tr>
+    <tr><td>404</td><td>Not Found</td><td>URL 打錯，或模型名稱不存在</td></tr>
+    <tr><td>429</td><td>Too Many Requests</td><td>打太快，超過 rate limit</td></tr>
+    <tr><td>500</td><td>Internal Server Error</td><td>OpenAI 那邊出問題，重試或等</td></tr>
+    <tr><td>503</td><td>Service Unavailable</td><td>OpenAI 系統忙不過來，等等再試</td></tr>
+  </tbody>
+</table>
+
+<div class="callout note">
+  <span class="label">Note</span>
+  HTTP status code 是 1991 年 Tim Berners-Lee 跟同事一起設計的，其中 404 因為太常見已經變成流行文化的一部分（很多網站把 404 頁面做得很有梗）。418 是個彩蛋——"I'm a teapot"，1998 年愚人節玩笑寫進 RFC 的，意思是「我是茶壺，不能煮咖啡」。HTTP 標準是有幽默感的。
+</div>
+
+<h2>從這裡看 SDK 在幹嘛</h2>
+
+<p>回頭看 Python SDK：</p>
+
+<pre><code>response = client.responses.create(
+    model="gpt-4o",
+    input="用一句話解釋什麼是 API。",
+)</code></pre>
+
+<p>當你呼叫這行，SDK 在幫你做的事：</p>
+
+<ol>
+  <li>把 <code>model</code> 跟 <code>input</code> 包成 JSON</li>
+  <li>加上 <code>Authorization: Bearer ...</code>（從環境變數讀 API key）</li>
+  <li>加上 <code>Content-Type: application/json</code></li>
+  <li>用 <code>POST</code> method 送到 <code>https://api.openai.com/v1/responses</code></li>
+  <li>收到回應，看 status code</li>
+  <li>如果是 4xx 或 5xx，丟出對應的 Python exception（例如 <code>AuthenticationError</code>、<code>RateLimitError</code>）</li>
+  <li>如果是 200，把回傳的 JSON 解析成 Python 物件</li>
+</ol>
+
+<p><strong>SDK 不是魔法，是幫你省下這些重複動作的工具</strong>。理解這層，你之後看 OpenAI 文件（或任何 REST API 文件）都會很快上手——因為所有 REST API 都是這個模式。</p>
+
+<h2>小結</h2>
+
+<p>這章把 API call 的「內部」拆開來看：</p>
+
+<ol>
+  <li><strong>HTTP 是萬用網路通訊協定</strong>——request 有 method、URL、headers、body；response 有 status code、headers、body</li>
+  <li><strong>JSON 是現代 API 的標準資料格式</strong>——簡單、跨語言、剛剛好</li>
+  <li><strong>Python <code>json</code> 模組</strong>：<code>dumps/loads</code> 轉字串，<code>dump/load</code> 操作檔案</li>
+  <li><strong>HTTP status code 看開頭分類</strong>：2xx 成功、4xx 你的問題、5xx 對方問題</li>
+  <li><strong>OpenAI SDK 就是 HTTP+JSON 的包裝</strong>——理解這層，所有 REST API 都通</li>
+</ol>
+
+<p>下一章開始我們要動手——把 Python 環境真正設定起來，準備在 Chapter 6 打第一通 API call。</p>
+
+<h2>練習</h2>
+
+<ol>
+  <li>把這個 Python dict 用 <code>json.dumps()</code> 轉成 JSON 字串，並用 <code>indent=2</code> 讓它有排版：<code>{"name": "OpenAI", "models": ["gpt-4o", "o1"], "founded": 2015}</code></li>
+  <li>故意寫一個有 trailing comma 的 JSON 字串，丟給 <code>json.loads()</code>，看看跳什麼錯。</li>
+  <li>解釋為什麼 401 和 403 是不一樣的錯——一個是「沒帶有效身份」，另一個是「身份是真的但沒權限」。生活中可以舉一個類似的例子嗎？</li>
+  <li>看 OpenAI 文件的 API reference 頁，找一個你沒呼叫過的 endpoint（例如 <code>images.generate</code>），看它的 request body 範例長什麼樣。能不能光看 JSON 結構就猜出它在做什麼？</li>
+</ol>
+<div class="chapter-nav">
+  <a class="nav-prev" href="#ch03">← 上一章：API 是什麼</a>
+  <a class="nav-top" href="#top">↑ 回目錄</a>
+  <a class="nav-next" href="#ch05">下一章：建立 Python 開發環境 →</a>
+</div>
+</section>
+
+<section id="ch05" class="chapter">
+<p class="chapter-label">Chapter 5</p>
+<h1>建立 Python 開發環境</h1>
+
+<p>前面四章我們把所有概念基礎鋪好了。從這章開始，每一章都會真的寫程式、真的跑東西。但在第一通 API call 之前，我們得先把工作環境準備好。</p>
+
+<p>這章要做四件事：</p>
+
+<ol>
+  <li>建立一個專案資料夾</li>
+  <li>在裡面建立 Python 虛擬環境</li>
+  <li>安裝 OpenAI SDK</li>
+  <li>安全地設定 <code>OPENAI_API_KEY</code></li>
+</ol>
+
+<p>整個流程大概十分鐘——但走錯一步，後面九個章節都會卡住。所以慢一點、確認每一步。</p>
+
+<h2>為什麼要用虛擬環境</h2>
+
+<p>很多人第一次學 Python 會直接：</p>
+
+<pre><code>pip install openai</code></pre>
+
+<p>然後就跑了。短期看起來沒問題。長期會出事。</p>
+
+<p>問題是：<strong>你電腦上的 Python 只有一個，但你會做的專案不只一個</strong>。</p>
+
+<p>想像一下情境：</p>
+
+<ul>
+  <li>你今年用 OpenAI SDK 1.50 做了一個會議逐字稿工具</li>
+  <li>明年你接到一個新案子，要用 OpenAI SDK 2.0（這個版本改了 API）</li>
+  <li>結果你升級了 SDK，去年的工具直接壞掉</li>
+</ul>
+
+<p>或者更可怕的情境：</p>
+
+<ul>
+  <li>你的工作環境用 <code>numpy 1.x</code></li>
+  <li>你裝了一個套件 A，它要求 <code>numpy 2.x</code></li>
+  <li>A 升級了 numpy，於是你原本的程式 B 全部炸掉</li>
+</ul>
+
+<p>這就是 Python 圈很有名的「<strong>dependency hell</strong>」——套件之間版本互相衝突，東動西動就壞。</p>
+
+<p><strong>虛擬環境的解法是：每個專案有自己獨立的 Python 跟自己的套件</strong>。專案 A 用 SDK 1.50、專案 B 用 SDK 2.0，井水不犯河水。</p>
+
+<div class="callout tip">
+  <span class="label">Tip</span>
+  Python 不是唯一被 dependency hell 折磨的語言——Node.js、Ruby、Java 都有過類似問題，後來各自演化出 npm 的 <code>node_modules/</code>、Ruby 的 <code>Bundler</code>、Java 的 <code>Maven</code>。Python 的 <code>venv</code> 在 2012 年（Python 3.3）被收進標準庫，從此「每個專案一個 venv」變成不成文的規矩。早期還有 <code>virtualenv</code>、<code>conda</code>、<code>poetry</code>、<code>uv</code> 等競爭工具，但對本課這種規模的專案，內建的 <code>venv</code> 完全夠用。
+</div>
+
+<h2>建立專案資料夾</h2>
+
+<p>打開終端機，進到你想放專案的位置（例如桌面）：</p>
+
+<pre><code>cd ~/Desktop</code></pre>
+
+<p>建立資料夾並進去：</p>
+
+<pre><code>mkdir openai-course
+cd openai-course</code></pre>
+
+<p>確認你現在在正確位置：</p>
+
+<pre><code>pwd</code></pre>
+
+<p>應該看到類似 <code>/Users/你的名字/Desktop/openai-course</code>（macOS）或 <code>C:\Users\你的名字\Desktop\openai-course</code>（Windows）。</p>
+
+<h2>建立虛擬環境</h2>
+
+<pre><code>python3 -m venv .venv</code></pre>
+
+<p>這行做的事：用 Python 內建的 <code>venv</code> 模組，建立一個名為 <code>.venv</code> 的資料夾，裡面是一個獨立的 Python 環境。</p>
+
+<div class="callout note">
+  <span class="label">Note</span>
+  為什麼資料夾叫 <code>.venv</code>（前面有個點）？因為 macOS / Linux 上，檔名開頭是 <code>.</code> 的檔案會被當成「隱藏檔」，預設不顯示。把虛擬環境設成隱藏可以讓你的專案資料夾看起來乾淨——畢竟 venv 裡面有上千個檔案，你不會想常看到。<code>.venv</code> 是社群最常見的命名，也是 VS Code、PyCharm 預設會偵測的名稱。
+</div>
+
+<p>跑 <code>ls -la</code>（macOS）或 <code>dir</code>（Windows）你會看到 <code>.venv</code> 資料夾已經建好。</p>
+
+<h2>啟動虛擬環境</h2>
+
+<p>虛擬環境建好之後，要「啟動」它才會生效。</p>
+
+<p><strong>macOS / Linux：</strong></p>
+
+<pre><code>source .venv/bin/activate</code></pre>
+
+<p><strong>Windows（PowerShell）：</strong></p>
+
+<pre><code>.venv\Scripts\Activate.ps1</code></pre>
+
+<p><strong>Windows（cmd）：</strong></p>
+
+<pre><code>.venv\Scripts\activate.bat</code></pre>
+
+<p>啟動成功的話，終端機提示符前面會多一個 <code>(.venv)</code>，像這樣：</p>
+
+<pre><code>(.venv) wei@MacBook openai-course %</code></pre>
+
+<p>這個 <code>(.venv)</code> 是個提醒——告訴你「你現在在虛擬環境裡」。要關掉的話打：</p>
+
+<pre><code>deactivate</code></pre>
+
+<div class="callout warning">
+  <span class="label">Warning</span>
+  <strong>每次新開終端機都要重新 <code>activate</code></strong>。這是新手最常踩的坑：上次跑得好好的，今天打開終端機跑 <code>python myapp.py</code> 卻說「找不到 openai 套件」——通常都是因為忘記 activate。看到 <code>(.venv)</code> 就是啟動了，沒看到就是沒啟動。
+</div>
+
+<p>確認 Python 來自虛擬環境：</p>
+
+<pre><code>which python   # macOS / Linux
+where python   # Windows</code></pre>
+
+<p>應該看到路徑是 <code>.../openai-course/.venv/bin/python</code>（macOS）或類似的 Windows 路徑。</p>
+
+<h2>安裝 OpenAI SDK</h2>
+
+<p>啟動虛擬環境之後，安裝套件：</p>
+
+<pre><code>pip install openai</code></pre>
+
+<p><code>pip</code> 是 Python 的套件管理器。它會去 PyPI（Python Package Index，套件的中央倉庫）下載 <code>openai</code> 套件並裝到當前的虛擬環境裡。</p>
+
+<p>跑完之後可以確認：</p>
+
+<pre><code>pip show openai</code></pre>
+
+<p>應該看到版本號跟其他資訊。<strong>沒看到的話一定是沒啟動虛擬環境</strong>——回去確認終端機前面有沒有 <code>(.venv)</code>。</p>
+
+<p>順便裝幾個本課後面會用到的套件：</p>
+
+<pre><code>pip install python-dotenv</code></pre>
+
+<p><code>python-dotenv</code> 讓我們用 <code>.env</code> 檔管理環境變數（下一節馬上會用到）。</p>
+
+<h2>把已裝套件記下來</h2>
+
+<p>寫一個檔案 <code>requirements.txt</code>，記錄這個專案用到的套件：</p>
+
+<pre><code>pip freeze &gt; requirements.txt</code></pre>
+
+<p>打開 <code>requirements.txt</code> 你會看到類似：</p>
+
+<pre><code>openai==1.50.0
+python-dotenv==1.0.0
+...</code></pre>
+
+<p><strong>這個檔案很重要</strong>：未來別人（或你自己換電腦）要跑你的專案時，只要：</p>
+
+<pre><code>pip install -r requirements.txt</code></pre>
+
+<p>就會把所有套件裝回來，<strong>版本完全一致</strong>。本課所有專案都會有 <code>requirements.txt</code>。</p>
+
+<h2>設定 OPENAI_API_KEY</h2>
+
+<p>到 platform.openai.com 註冊帳號（如果還沒有），到 API keys 頁面建立一把新的 key。複製下來——<strong>這個 key 只會顯示一次</strong>，關掉就找不到了，要重新建。</p>
+
+<p>接下來重點是：<strong>不要把 key 寫進程式碼</strong>。我們用 <code>.env</code> 檔案。</p>
+
+<p>在專案資料夾建立 <code>.env</code>：</p>
+
+<pre><code>touch .env    # macOS / Linux</code></pre>
+
+<p>或者在編輯器裡新建一個檔案叫 <code>.env</code>。</p>
+
+<p>打開來寫一行：</p>
+
+<pre><code>OPENAI_API_KEY=sk-proj-你的key貼這裡</code></pre>
+
+<p><strong>注意：等號兩邊不要有空格，key 不要加引號</strong>。</p>
+
+<p>接著在 Python 程式裡這樣讀：</p>
+
+<pre><code>from dotenv import load_dotenv
+from openai import OpenAI
+
+load_dotenv()
+client = OpenAI()</code></pre>
+
+<p><code>load_dotenv()</code> 會把 <code>.env</code> 裡的內容讀進「環境變數」，然後 <code>OpenAI()</code> 預設會去環境變數找 <code>OPENAI_API_KEY</code>，剛好對接。</p>
+
+<div class="callout tip">
+  <span class="label">Tip</span>
+  為什麼這層曲折？為什麼不直接 <code>OpenAI(api_key="sk-...")</code>？因為<strong>程式碼跟祕密應該分開</strong>。程式碼會被 git commit、會被 push 到 GitHub、會被同事看到；但 <code>.env</code> 不會（下一步馬上設定）。這樣同一份程式碼可以給多人用，每個人用自己的 key，互不干擾。
+</div>
+
+<h2>把 .env 排除在 git 之外</h2>
+
+<p>如果你打算用 git 管版本（強烈建議），務必建立 <code>.gitignore</code>：</p>
+
+<pre><code>.venv/
+.env
+__pycache__/
+*.pyc
+.DS_Store
+transcripts/
+uploads/</code></pre>
+
+<p><code>.gitignore</code> 是給 git 看的「請忽略這些檔案」清單。<strong>這個動作必須在第一次 commit 之前做</strong>——一旦 <code>.env</code> 進了 git 歷史，就算之後刪掉也找得回來，等於洩漏。</p>
+
+<div class="callout warning">
+  <span class="label">Warning</span>
+  GitHub 上每天都有人把 API key 直接 commit 上去，OpenAI 的 bot 會在幾分鐘內偵測到並撤銷那把 key。<strong>但 bot 不總是夠快</strong>——已經有真實案例是 key 在被撤銷前的幾分鐘內被人撿去打了幾百美金的 API。<code>.gitignore</code> 是免費的保險，務必設定。
+</div>
+
+<h2>確認整個環境通了</h2>
+
+<p>寫一個 <code>test_setup.py</code>：</p>
+
+<pre><code>from dotenv import load_dotenv
+from openai import OpenAI
+import os
+
+load_dotenv()
+
+if not os.getenv("OPENAI_API_KEY"):
+    print("找不到 OPENAI_API_KEY，請確認 .env 檔案")
+    exit(1)
+
+client = OpenAI()
+print("Client 建立成功")</code></pre>
+
+<p>跑：</p>
+
+<pre><code>python test_setup.py</code></pre>
+
+<p>看到 <code>Client 建立成功</code> 就代表所有設定都通了。下一章我們就要打第一通真的 API call。</p>
+
+<h2>小結</h2>
+
+<p>這章設定的事：</p>
+
+<ol>
+  <li><strong>建立專案資料夾</strong>：<code>openai-course/</code></li>
+  <li><strong>建立虛擬環境</strong>：<code>python3 -m venv .venv</code></li>
+  <li><strong>啟動虛擬環境</strong>：<code>source .venv/bin/activate</code>（macOS）或 <code>.venv\Scripts\activate</code>（Windows）</li>
+  <li><strong>安裝套件</strong>：<code>pip install openai python-dotenv</code></li>
+  <li><strong>記錄相依套件</strong>：<code>pip freeze &gt; requirements.txt</code></li>
+  <li><strong>設定 API key</strong>：寫進 <code>.env</code>，用 <code>load_dotenv()</code> 讀</li>
+  <li><strong>保護 key</strong>：建立 <code>.gitignore</code>，把 <code>.env</code> 跟 <code>.venv/</code> 排除</li>
+</ol>
+
+<p><strong>每次新開終端機要記得重新 activate</strong>——這是接下來九個章節最容易忘記、最容易卡住的事。</p>
+
+<h2>練習</h2>
+
+<ol>
+  <li>把整個流程跑一次，最後跑 <code>test_setup.py</code> 確認通了。</li>
+  <li>把終端機關掉，重新打開，<strong>不</strong>啟動虛擬環境直接跑 <code>python test_setup.py</code>，看會跳什麼錯。然後 <code>activate</code> 之後再跑一次。</li>
+  <li>看一下 <code>requirements.txt</code> 的內容，跟你裝的套件對得起來嗎？</li>
+  <li>試試把 <code>.env</code> 的內容隨便改錯（例如把 key 改一個字），跑 <code>test_setup.py</code>，看會發生什麼。</li>
+</ol>
+<div class="chapter-nav">
+  <a class="nav-prev" href="#ch04">← 上一章：HTTP 與 JSON 基礎</a>
+  <a class="nav-top" href="#top">↑ 回目錄</a>
+  <a class="nav-next" href="#ch06">下一章：第一個 Responses API 程式 →</a>
+</div>
+</section>
+
+<section id="ch06" class="chapter">
+<p class="chapter-label">Chapter 6</p>
+<h1>第一個 Responses API 程式</h1>
+
+<p>前面五章把路鋪好了：終端機會用了，Python 環境裝起來了，API key 也設好了。這章我們終於要打第一通電話給 OpenAI——而且程式短到你可能會懷疑這樣就夠了嗎。</p>
+
+<p>確實就這樣。整段程式大概十行，但這十行是之後每一個 API call 的骨架。看懂這一段，後面所有範例都是它的延伸而已。</p>
+
+<h2>最小可運作的程式</h2>
+
+<p>打開你的編輯器，建立一個叫 <code>hello.py</code> 的檔案，貼進下面這段：</p>
+
+<pre><code>from openai import OpenAI
+
+client = OpenAI()
+
+response = client.responses.create(
+    model="gpt-4o",
+    input="用一句話解釋什麼是 API。",
+)
+
+print(response.output_text)</code></pre>
+
+<p>存檔，回到終端機，確認你還在啟動 <code>.venv</code> 的狀態，然後執行：</p>
+
+<pre><code>python hello.py</code></pre>
+
+<p>如果一切順利，你會看到模型回給你的一句話。每次跑出來的句子都可能不太一樣，這是正常的。</p>
+
+<div class="callout note">
+  <span class="label">Note</span>
+  如果你看到 <code>ModuleNotFoundError: No module named 'openai'</code>，代表你不在虛擬環境裡，或者套件沒裝。回 Chapter 5 確認 <code>source .venv/bin/activate</code> 跟 <code>pip install openai</code> 都做過了。
+</div>
+
+<h2>一行一行讀懂它</h2>
+
+<p>短歸短，這段程式做了四件事。我們慢慢看。</p>
+
+<pre><code>from openai import OpenAI</code></pre>
+
+<p>第一行把 <code>OpenAI</code> 這個類別從 <code>openai</code> 套件匯入進來。這個套件就是我們在 Chapter 5 用 <code>pip install openai</code> 裝的那一個，正式名稱叫做「OpenAI Python SDK」。</p>
+
+<p>SDK 是 Software Development Kit 的縮寫，講白話就是「人家寫好的工具包」。沒有它，我們得自己組 HTTP request、處理 JSON、處理錯誤回應；有它，我們只要呼叫幾個 Python 函式就好。Chapter 4 講過 SDK 背後其實就是在送 HTTP，這裡是第一次親手用到。</p>
+
+<pre><code>client = OpenAI()</code></pre>
+
+<p>第二件事是建立一個「客戶端」物件。你可以把 <code>client</code> 想成一支已經設定好的電話：之後所有要打給 OpenAI 的呼叫，都從這支電話打出去。</p>
+
+<p>這一行為什麼不需要寫 API key？因為 <code>OpenAI()</code> 在建立時會自動去找環境變數 <code>OPENAI_API_KEY</code>。我們在 Chapter 5 已經設好了，所以這裡可以省略。</p>
+
+<div class="callout warning">
+  <span class="label">Warning</span>
+  千萬不要為了方便寫成 <code>OpenAI(api_key="sk-...")</code>，把 key 硬編在程式碼裡。一旦你把程式碼推到 GitHub，這個 key 就等於公開了。OpenAI 的偵測機器人會立刻發信通知你 key 已被撤銷，這還算好的下場——更糟的是被人撿去打到你帳號額度爆掉。
+</div>
+
+<pre><code>response = client.responses.create(
+    model="gpt-4o",
+    input="用一句話解釋什麼是 API。",
+)</code></pre>
+
+<p>這裡是真正的重點。<code>client.responses.create(...)</code> 就是「我要呼叫 Responses API」的意思。Responses API 是 OpenAI 目前推薦給文字生成任務的主要介面，本課所有文字相關的呼叫都會用它。</p>
+
+<p><code>model</code> 告訴 OpenAI「我要用哪個模型」。我們選了 <code>gpt-4o</code>，這是個適合大部分一般任務、品質穩定、價格中等的選擇。</p>
+
+<p><code>input</code> 就是你想問模型的話。可以是一句話、一段文章、甚至一份完整文件，只要不超過模型的長度限制都行。</p>
+
+<div class="callout tip">
+  <span class="label">Tip</span>
+  <code>model</code> 跟 <code>input</code> 是這個 API 最常用的兩個參數，剩下的（<code>instructions</code>、<code>temperature</code>、<code>stream</code>...）都是進階用法，我們會在後面幾章慢慢介紹。剛開始不用想太多。
+</div>
+
+<pre><code>print(response.output_text)</code></pre>
+
+<p>最後一行把回應印出來。注意我們印的是 <code>response.output_text</code>，不是 <code>response</code> 本身。</p>
+
+<p><code>response</code> 是一個 Python 物件，裡面包了一大堆資訊：用了多少 token、用了哪個模型版本、輸出有沒有被內容過濾、產生時間、各種 metadata。但 99% 的時候你只在意「模型講了什麼」，所以 SDK 貼心地提供了 <code>output_text</code> 這個快捷屬性，把純文字直接撈出來。</p>
+
+<p>如果你好奇 <code>response</code> 裡面長什麼樣，可以加一行：</p>
+
+<pre><code>print(response)</code></pre>
+
+<p>跑跑看，會發現是一坨結構化的資料。等到 Chapter 9 處理 Speech to Text、Chapter 13 處理 Structured Output 時，我們會回頭挖這個物件的更多欄位。</p>
+
+<h2>背後發生了什麼</h2>
+
+<p>你按下 Enter 那一刻，下面這串事情大概在一兩秒內全部發生了：</p>
+
+<ol>
+  <li>SDK 把你的 <code>input</code> 跟 <code>model</code> 包成一份 JSON</li>
+  <li>SDK 用你的 API key 當 header，把這份 JSON 透過 HTTPS 送到 <code>api.openai.com</code></li>
+  <li>OpenAI 的伺服器收到、跑模型、產生回應</li>
+  <li>伺服器把結果包成 JSON 回傳</li>
+  <li>SDK 解析 JSON，包成 Python 物件交給你</li>
+</ol>
+
+<p>整個過程是 Chapter 4 講的 HTTP request/response 的具體實現。SDK 把這些細節都藏起來了，但你心裡要有「這就是在送 HTTP」的概念——除錯的時候會很有用。</p>
+
+<h2>常見出錯狀況</h2>
+
+<p>第一次跑通常會卡幾種地方，每個都很典型：</p>
+
+<div class="error-list">
+  <p><strong><code>AuthenticationError: Incorrect API key</code></strong>——多半是 API key 沒設好，或者設了但這個終端機 session 沒讀到。確認你在當前終端機跑 <code>echo $OPENAI_API_KEY</code>（macOS / Linux）或 <code>echo %OPENAI_API_KEY%</code>（Windows）有東西出來。</p>
+
+  <p><strong><code>RateLimitError: 429</code></strong>——你呼叫太快、或者你的 OpenAI 帳號還沒有付款方式、或者額度用完了。打開 OpenAI dashboard 看一下帳號狀態。</p>
+
+  <p><strong><code>NotFoundError: The model 'xxx' does not exist</code></strong>——模型名稱打錯，或者你的帳號沒這個模型的權限。確認你打的是 <code>gpt-4o</code> 而不是 <code>gpt4o</code> 或 <code>GPT-4o</code>。</p>
+
+  <p><strong>程式跑完沒輸出、也沒錯誤訊息</strong>——很可能是你忘了 <code>print(...)</code>。我看過不少學員。</p>
+</div>
+
+<div class="callout note">
+  <span class="label">Note</span>
+  看到陌生的錯誤訊息，先把整段錯誤複製貼到 Google 或 ChatGPT 問。OpenAI 的錯誤訊息其實寫得算清楚，多半英文讀懂大半就知道問題在哪。
+</div>
+
+<h2>小結</h2>
+
+<p>這章我們做了四件事：匯入 SDK、建立 client、呼叫 Responses API、印出結果。短短十行，卻是這整套課程的核心模式——之後不管做摘要、改寫、會議紀錄、語音轉文字，都是這個骨架加上不同參數而已。</p>
+
+<p>接下來的 Chapter 7，我們會開始認真寫 prompt，讓模型的回答從「能用」變成「真的好用」。</p>
+
+<h2>練習</h2>
+
+<ol>
+  <li>把 <code>input</code> 改成「用三個條列說明 OpenAI API 可以做什麼」，觀察模型輸出怎麼變化。</li>
+  <li>加上一個迴圈，連續呼叫五次同一個 prompt，看看每次的回答有沒有不一樣。</li>
+  <li>改成從命令列讀取問題：執行 <code>python hello.py "你的問題"</code>，讓程式把第一個參數當成 <code>input</code>（提示：用 <code>sys.argv</code>）。</li>
+  <li>跑一次後，把 <code>print(response)</code> 加進去，看看完整的回應物件長什麼樣，找出裡面 <code>usage</code> 欄位是什麼。</li>
+</ol>
+
+<hr>
+
+<div class="preview-banner">
+  <strong>預覽：以下兩段「故事插入點」尚未整合進完整章節。</strong>
+  按上一輪討論的方向擬稿——只寫故事段，不展開整章。確認方向後再展開 Ch9 與 Ch10 的全文。
+</div>
+
+<p class="chapter-label">Chapter 9 · 開頭故事段</p>
+<h1 style="font-size:1.4em;border-bottom:none;">為什麼有兩個轉錄模型？</h1>
+
+<p>翻開 OpenAI 文件你會發現，能做語音轉文字的模型有兩個：<code>whisper-1</code> 跟 <code>gpt-4o-transcribe</code>（還有更便宜的 <code>gpt-4o-mini-transcribe</code>）。第一次看到的人通常會問：怎麼選？</p>
+
+<p>故事要從 2022 年講起。那年 OpenAI 開源了一個叫做 Whisper 的語音辨識模型，丟到 Hugging Face 上免費讓人下載。它的特色是「多語言、抗噪、長音檔也能處理」，當時很轟動——因為這種品質的模型，以前要付錢給 Google 或 AWS 才用得到。後來 OpenAI 把它包進 API，命名為 <code>whisper-1</code>，定價也很低，是這幾年很多會議轉錄、podcast 字幕工具的主力。</p>
+
+<p>到了 2024 年底，OpenAI 把更新一代的多模態能力（也就是 GPT-4o 那一套）也訓練成可以聽音檔，推出了 <code>gpt-4o-transcribe</code> 跟更小的 <code>gpt-4o-mini-transcribe</code>。這兩個模型的辨識品質比 <code>whisper-1</code> 更好，特別是在口音重、背景吵、專有名詞多的情境下差距明顯。但代價是，每分鐘的價格也比較高。</p>
+
+<p>怎麼選？務實的答案是：</p>
+
+<ul>
+  <li><strong>練習、便宜、量大、品質可接受就好：</strong>用 <code>whisper-1</code></li>
+  <li><strong>正式產品、會議紀錄、要求準確度：</strong>用 <code>gpt-4o-transcribe</code></li>
+  <li><strong>介於兩者之間：</strong>用 <code>gpt-4o-mini-transcribe</code></li>
+</ul>
+
+<p>本章的範例都會用 <code>gpt-4o-transcribe</code>，因為這套課的主軸是「做一個能用的會議逐字稿工具」，品質優先。但練習裡我們會故意叫你用 <code>whisper-1</code> 跑同一個音檔，親自比較看看，建立自己對「值不值得多付那點錢」的直覺。</p>
+
+<hr>
+
+<p class="chapter-label">Chapter 10 · 開頭故事段</p>
+<h1 style="font-size:1.4em;border-bottom:none;">為什麼語音辨識偏愛 16kHz mono WAV？</h1>
+
+<p>等一下我們要用 <code>ffmpeg</code> 把音檔轉成 <code>16kHz mono WAV</code>。指令長這樣：</p>
+
+<pre><code>ffmpeg -y -i meeting.mp3 -ac 1 -ar 16000 -vn -f wav -acodec pcm_s16le meeting_16k_mono.wav</code></pre>
+
+<p>看起來像咒語。學員的合理疑問是：為什麼是 16kHz？為什麼要 mono？為什麼要 WAV 不繼續用 MP3？這些選擇不是隨便的，背後有具體理由。</p>
+
+<p><strong>為什麼 16kHz？</strong>人類講話的能量主要集中在 300Hz 到 3400Hz——這也是傳統電話只取樣到 8kHz 的原因。語音辨識模型通常用 16kHz 訓練，因為這個取樣率剛好涵蓋了人聲的關鍵頻段，又不會像 44.1kHz（CD 品質）那樣帶進一堆對辨識沒幫助的高頻噪音。把音樂用的 44.1kHz 餵給語音模型，模型不會比較準，反而檔案大了快三倍。</p>
+
+<p><strong>為什麼 mono？</strong>會議錄音很多時候是雙聲道（左右麥克風或立體聲），但語音辨識只在意「有人在講什麼」，不在意「他坐在你左邊還是右邊」。轉成 mono 把兩個聲道合併，檔案小一半、辨識結果幾乎沒差。如果你的錄音是兩個人各佔一個聲道（例如線上會議的單獨軌錄音），那是另一個問題——你應該分軌轉錄，而不是合成 mono。</p>
+
+<p><strong>為什麼 WAV 不用 MP3？</strong>MP3 是有損壓縮，為了讓檔案變小，它丟掉了一些人耳不容易察覺的細節。對聽音樂來說沒差，但對模型來說，那些被丟掉的細節有時候正是它判斷子音、尾音的線索。WAV 配 PCM 是未壓縮的原始音訊，給模型最完整的資料。當然 WAV 檔案會大很多——如果你只是要儲存或傳輸，再壓回 MP3 就好。WAV 的角色是「給模型吃的格式」，不是「給人類儲存的格式」。</p>
+
+<p>所以那串指令在做什麼，重講一次就清楚了：把任意音檔轉成「16kHz 取樣、單聲道、未壓縮的 WAV」——這是給語音模型最理想的食物。</p>
+<div class="chapter-nav">
+  <a class="nav-prev" href="#ch05">← 上一章：建立 Python 開發環境</a>
+  <a class="nav-top" href="#top">↑ 回目錄</a>
+  <a class="nav-next" href="#ch07">下一章：Prompt 基礎 →</a>
+</div>
+</section>
+
+<section id="ch07" class="chapter">
+<p class="chapter-label">Chapter 7</p>
+<h1>Prompt 基礎</h1>
+
+<p>上一章我們打通了第一通 API call。短短十行，模型有回應。但你大概很快就會發現一件事：<strong>同樣一個問題，問十次有十種答案</strong>——有時候是條列、有時候是長篇大論、有時候很官腔、有時候很生硬。</p>
+
+<p>這不是模型壞了，是因為<strong>你還沒學會跟模型講話</strong>。</p>
+
+<p>這章我們把「Prompt」這件事好好講清楚。學完之後，你會發現「同一個模型」在你手上跟在別人手上產出的品質可以差很大——差別不在模型，在你怎麼問。</p>
+
+<h2>Prompt 是什麼</h2>
+
+<p>Prompt 就是你給模型的指示。最直觀的理解是：</p>
+
+<pre><code>response = client.responses.create(
+    model="gpt-4o",
+    input="幫我改寫這段話",
+)</code></pre>
+
+<p>這個 <code>input</code> 就是 prompt。</p>
+
+<p>但實際上 OpenAI Responses API 允許你分開「<strong>告訴模型它是誰</strong>」（<code>instructions</code>）跟「<strong>這次的具體輸入</strong>」（<code>input</code>）：</p>
+
+<pre><code>response = client.responses.create(
+    model="gpt-4o",
+    instructions="你是一位專業的中文編輯，請保留原意並讓文字更清楚。",
+    input="今天那個東西可能有點問題我們晚點再看。",
+)</code></pre>
+
+<p>兩個放在一起就是這次呼叫的完整 prompt。<strong>這個區分很重要</strong>——<code>instructions</code> 設定「角色與規則」，<code>input</code> 給「這次的具體素材」。如果你做一個改寫工具會反覆呼叫 100 次，<code>instructions</code> 是固定的，<code>input</code> 每次不同。</p>
+
+<div class="callout tip">
+  <span class="label">Tip</span>
+  "Prompt engineering" 這個詞是 2020 年 GPT-3 發布之後才大規模出現的。在那之前模型不夠強，輸入只是「給它一段文字看它能不能接得下去」；GPT-3 突然好到「你告訴它要做什麼，它就做」，但同時「怎麼告訴它」變成關鍵技能。一兩年內這變成一個獨立的職位類別。今天「prompt engineer」這個職位有點退燒——因為新一代模型對細節越來越不敏感、容錯越來越高——但<strong>「會講話」依然是用 API 最重要的單一技能</strong>。
+</div>
+
+<h2>從爛 prompt 到好 prompt</h2>
+
+<p>我們用一個例子貫穿這節：你想做一個「把口語轉成正式 email」的工具。</p>
+
+<p><strong>第一版 prompt（很爛）：</strong></p>
+
+<pre><code>input="幫我寫個 email"</code></pre>
+
+<p>模型不知道要寫什麼、給誰、什麼風格。它會猜——而它的猜往往不是你想要的。</p>
+
+<p><strong>第二版（好一點）：</strong></p>
+
+<pre><code>input="幫我把這段話改成 email：明天客戶會議延後到下午三點"</code></pre>
+
+<p>模型現在知道任務了：改寫成 email。但它仍要猜：給誰寄？正式還是輕鬆？要不要署名？</p>
+
+<p><strong>第三版（清楚很多）：</strong></p>
+
+<pre><code>instructions="""
+你是一位協助使用者撰寫商務 email 的助手。
+規則：
+1. 使用繁體中文
+2. 語氣專業但不僵硬
+3. 開頭加上適當問候，結尾用「祝 順心」
+4. 不要加任何不在原文裡的資訊
+""".strip()
+
+input="把這段口語改成 email，收件人是「林經理」，內容：明天客戶會議延後到下午三點"</code></pre>
+
+<p>現在模型有完整資訊：角色、語言、語氣、格式規則、不能編造、收件人、內容主旨。輸出會穩定多了。</p>
+
+<h2>好 prompt 的四個元素</h2>
+
+<p>把上面這個例子拆開，一個好 prompt 通常包含四個元素：</p>
+
+<p><strong>1. 任務（Task）</strong>：你要它做什麼？「改寫」「翻譯」「摘要」「分類」要明確。</p>
+
+<p><strong>2. 背景（Context）</strong>：補充資訊。誰會看、用在哪、有什麼限制。</p>
+
+<p><strong>3. 限制（Constraints）</strong>：明確的「不要做什麼」。例如「不要編造資訊」「字數不超過 200 字」「不要用 emoji」。</p>
+
+<p><strong>4. 格式（Format）</strong>：輸出長什麼樣。條列、段落、JSON、表格、Markdown。</p>
+
+<p>不一定每次都四個都要寫——簡單任務一句話就夠。但<strong>任務必明確</strong>，這是最低標。</p>
+
+<div class="callout note">
+  <span class="label">Note</span>
+  你可能會發現一個有趣的事：寫 prompt 跟「給新同事下指示」非常像。差勁的 prompt（「幫我搞一下」）就像差勁的主管下單——對方只能猜你的意思。好的 prompt 把任務、限制、格式都講清楚，就像會帶人的主管。這個技能很值得你刻意練習，因為<strong>好的 prompt 工程跟好的人類溝通是同一套能力</strong>。
+</div>
+
+<h2>角色設定的細節</h2>
+
+<p><code>instructions</code> 裡常會設定一個「角色」：</p>
+
+<pre><code>instructions="你是一位專業的中文編輯..."
+instructions="你是一位資深的程式碼審查員..."
+instructions="你是一位用簡單語言解釋複雜概念的老師..."</code></pre>
+
+<p>這招很有效，但也容易被誤用。幾個原則：</p>
+
+<p><strong>好的角色設定</strong>會限縮模型的行為範圍：</p>
+
+<pre><code>instructions="""
+你是一位專業的中文編輯，專長是讓口語化文字變得清晰有條理。
+你只負責改寫，不評論、不解釋、不提建議。
+直接輸出改寫後的文字，不要說「以下是改寫」這類前綴。
+""".strip()</code></pre>
+
+<p><strong>沒用的角色設定</strong>只是裝飾：</p>
+
+<pre><code>instructions="你是一位非常聰明的 AI 助手，會盡力幫助使用者。"</code></pre>
+
+<p>這種寫法等於沒寫——模型本來就會盡力幫你。<strong>角色設定的價值是「定義你不要什麼」</strong>，而不是「定義你要什麼」。</p>
+
+<h2>指定輸出格式</h2>
+
+<p>如果你寫的是「會被另一個程式讀」的工具，<strong>輸出格式比內容更重要</strong>。最常見的兩個技巧：</p>
+
+<p><strong>1. 用範例（few-shot）：</strong></p>
+
+<pre><code>instructions="""
+判斷使用者輸入的情緒，輸出格式：
+
+情緒：[正面 / 負面 / 中性]
+信心：[0-100]
+關鍵字：[最多三個]
+
+範例：
+輸入：今天的會議真的太棒了，大家都很投入
+情緒：正面
+信心：90
+關鍵字：會議、投入、滿意
+""".strip()
+
+input="這個產品爛透了，根本不能用"</code></pre>
+
+<p>這比文字描述「請輸出包含三個欄位的文字」有效十倍。</p>
+
+<p><strong>2. 用結構化輸出：</strong></p>
+
+<p>如果你真的需要乾淨的 JSON，<strong>不要靠 prompt 寫「請輸出 JSON」</strong>——那是不可靠的。本課 Chapter 13 會教 OpenAI 的 <code>response_format</code> 機制，可以強制模型輸出符合特定 schema 的 JSON。</p>
+
+<div class="callout warning">
+  <span class="label">Warning</span>
+  一個很常見的錯誤：在 prompt 裡寫「請輸出 JSON 格式：<code>{"sentiment": "...", "score": ...}</code>」，然後試圖用 <code>json.loads()</code> 解析回傳。<strong>這在 95% 的情況會成功，但剩下 5% 會炸</strong>——模型偶爾會在 JSON 前後加「以下是分析結果」之類的話。要嘛接受這個失敗率、寫 <code>try/except</code>，要嘛用 Chapter 13 教的結構化輸出。
+</div>
+
+<h2>Temperature：模型的「亂度」</h2>
+
+<p><code>temperature</code> 是個 0 到 2 的數字，控制模型回答的「隨機性」：</p>
+
+<pre><code>response = client.responses.create(
+    model="gpt-4o",
+    input="寫一個短句",
+    temperature=0.0,   # 幾乎一致的輸出
+)</code></pre>
+
+<ul>
+  <li><strong>temperature=0</strong>：每次幾乎都回一樣的答案，適合「事實查詢」「程式碼生成」這種需要可預測性的任務</li>
+  <li><strong>temperature=1.0</strong>（預設）：有變化，適合一般用途</li>
+  <li><strong>temperature=1.5 以上</strong>：很有創意但開始胡言亂語</li>
+</ul>
+
+<p>本課的工具大多用 0 到 0.7 之間。<code>temperature=0</code> 看似最「準」，但有時候模型會卡在一個錯誤答案重複輸出，<strong>不總是最佳選擇</strong>。</p>
+
+<div class="callout tip">
+  <span class="label">Tip</span>
+  Temperature 這個詞來自統計物理。你不需要懂背後的數學——只要知道<strong>數字小 = 穩定、數字大 = 多樣</strong>就夠了。實務上 0.3 到 0.7 是最常用的範圍。
+</div>
+
+<h2>一個完整範例：中文改寫工具</h2>
+
+<p>把這章學的東西整合起來，做一個可重複呼叫的中文改寫工具：</p>
+
+<pre><code>from dotenv import load_dotenv
+from openai import OpenAI
+
+load_dotenv()
+client = OpenAI()
+
+INSTRUCTIONS = """
+你是一位專業的中文編輯，專長是讓口語化的文字變得清晰、有條理、好閱讀。
+
+規則：
+1. 使用繁體中文
+2. 保留原意，不要加上沒講過的資訊
+3. 不要改變語意或結論
+4. 不要評論，直接輸出改寫後的文字
+5. 不加前綴（例如「以下是改寫」）
+""".strip()
+
+def rewrite(text: str, temperature: float = 0.3) -&gt; str:
+    response = client.responses.create(
+        model="gpt-4o",
+        instructions=INSTRUCTIONS,
+        input=text,
+        temperature=temperature,
+    )
+    return response.output_text
+
+if __name__ == "__main__":
+    sample = "今天那個會議啊大家講的好像有點亂客戶那邊也沒太理解"
+    print(rewrite(sample))</code></pre>
+
+<p>跑一次，輸出大概像：</p>
+
+<pre><code>今天的會議內容有些雜亂，客戶似乎也沒有完全理解。</code></pre>
+
+<p>這個工具現在可以重複呼叫——<code>rewrite()</code> 可以丟進任何一段文字，每次都會用同樣的規則改寫。本課從這裡開始，我們會反覆使用「instructions + input + 函式包裝」的模式。</p>
+
+<h2>小結</h2>
+
+<ol>
+  <li><strong>Prompt = <code>instructions</code>（角色與規則）+ <code>input</code>（具體素材）</strong>——清楚分開兩者</li>
+  <li><strong>好 prompt 的四元素</strong>：任務、背景、限制、格式</li>
+  <li><strong>角色設定的價值是「定義不要什麼」</strong>，不是裝飾</li>
+  <li><strong>指定輸出格式</strong>：先用範例，需要程式可讀的 JSON 用 Chapter 13 的結構化輸出</li>
+  <li><strong>temperature</strong>：0 穩定、1 預設、太高會胡言亂語</li>
+  <li><strong>把 prompt 包進函式</strong>：方便重複使用，固定 instructions 變動 input</li>
+</ol>
+
+<p>下一章我們把這個改寫工具擴充成完整的「文字小工具」——接命令列參數、處理檔案、加上各種選項。</p>
+
+<h2>練習</h2>
+
+<ol>
+  <li>改 <code>INSTRUCTIONS</code>，讓模型把口語轉成正式商務 email（含問候與結尾）。</li>
+  <li>加一個 <code>style</code> 參數，可以是 <code>"短"</code>、<code>"中"</code>、<code>"長"</code>，分別在 instructions 裡加上對應的字數限制。</li>
+  <li>試試把 <code>temperature</code> 從 0 改到 1.5，同一段輸入跑五次，比較穩定度的差異。</li>
+  <li>寫一個 prompt，要求模型輸出「情緒：[正面/負面/中性] | 信心：[0-100]」格式，並用 Python 解析回來。寫 <code>try/except</code> 處理偶爾的格式錯誤。</li>
+</ol>
+<div class="chapter-nav">
+  <a class="nav-prev" href="#ch06">← 上一章：第一個 Responses API 程式</a>
+  <a class="nav-top" href="#top">↑ 回目錄</a>
+  <a class="nav-next" href="#ch08">下一章：做一個文字小工具 →</a>
+</div>
+</section>
+
+<section id="ch08" class="chapter">
+<p class="chapter-label">Chapter 8</p>
+<h1>做一個文字小工具</h1>
+
+<p>到上一章為止，我們的程式都還停留在「在 IDE 裡按執行」的階段。這章我們把它升級成<strong>真正的工具</strong>——一個你可以從終端機呼叫、帶參數、處理檔案、輸出結果的命令列程式。</p>
+
+<p>完成這章之後你會有 <code>summarize.py</code>：</p>
+
+<pre><code>python summarize.py notes.txt --style short --output summary.md</code></pre>
+
+<p>這就是一個完整的小工具了。可以放在桌面、可以給同事用、可以排程定時跑。「會用 API」跟「能做出工具」的差別，就在這幾步。</p>
+
+<h2>任務：文字摘要工具</h2>
+
+<p>我們做的工具目標：</p>
+
+<ul>
+  <li>讀一個文字檔（會議紀錄、文章、信件等）</li>
+  <li>用 OpenAI 產生摘要</li>
+  <li>把摘要寫到另一個檔案</li>
+  <li>支援「短」「中」「長」三種風格</li>
+  <li>命令列指定輸入檔、輸出檔、風格</li>
+</ul>
+
+<p>聽起來功能不少，但有了前面七章的基礎，這只是把零件組裝起來。</p>
+
+<h2>第一版：寫死的設定</h2>
+
+<p>先把最簡單的版本跑起來：</p>
+
+<pre><code># summarize.py
+from pathlib import Path
+
+from dotenv import load_dotenv
+from openai import OpenAI
+
+load_dotenv()
+client = OpenAI()
+
+INSTRUCTIONS = """
+你是一位專業的中文編輯，專長是把長文章整理成清晰的摘要。
+
+規則：
+1. 使用繁體中文
+2. 保留所有關鍵資訊與決策
+3. 用條列式呈現重點
+4. 不評論、不延伸、不加沒講過的資訊
+""".strip()
+
+def summarize(text: str) -&gt; str:
+    response = client.responses.create(
+        model="gpt-4o",
+        instructions=INSTRUCTIONS,
+        input=text,
+        temperature=0.3,
+    )
+    return response.output_text
+
+if __name__ == "__main__":
+    input_path = Path("notes.txt")
+    output_path = Path("summary.txt")
+
+    text = input_path.read_text(encoding="utf-8")
+    summary = summarize(text)
+    output_path.write_text(summary, encoding="utf-8")
+    print(f"摘要已輸出到 {output_path}")</code></pre>
+
+<p>跑一次：</p>
+
+<pre><code>python summarize.py</code></pre>
+
+<p>能跑了。但「輸入跟輸出檔名寫死」這件事不夠像工具——我們要它能從命令列接參數。</p>
+
+<h2>加上命令列參數</h2>
+
+<p>Python 內建 <code>argparse</code> 模組專門處理這件事：</p>
+
+<pre><code>import argparse
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="文字摘要工具")
+    parser.add_argument("input", help="輸入檔案路徑")
+    parser.add_argument(
+        "-o", "--output",
+        default=None,
+        help="輸出檔案路徑（預設：輸入檔同名 .summary.md）",
+    )
+    parser.add_argument(
+        "-s", "--style",
+        choices=["short", "medium", "long"],
+        default="medium",
+        help="摘要風格（預設：medium）",
+    )
+    return parser.parse_args()</code></pre>
+
+<p><code>argparse</code> 會自動：</p>
+
+<ul>
+  <li>處理 <code>--help</code> 參數，印出說明</li>
+  <li>檢查必填參數有沒有給</li>
+  <li>把 <code>--style xxx</code> 轉成 <code>args.style</code></li>
+  <li>出錯時印出清楚的錯誤訊息</li>
+</ul>
+
+<div class="callout tip">
+  <span class="label">Tip</span>
+  <code>argparse</code> 是 Python 標準庫，能處理 95% 的命令列需求。社群還有更現代的工具像 <code>click</code> 跟 <code>typer</code>，更省事但要多裝一個套件。本課堅持用標準庫——讓學員寫的程式可以在任何乾淨環境跑。
+</div>
+
+<h2>加上風格控制</h2>
+
+<p>風格的差別由 <code>instructions</code> 動態組裝：</p>
+
+<pre><code>STYLE_HINTS = {
+    "short": "用 3 個條列，每條不超過 30 字。",
+    "medium": "用 5 到 8 個條列，每條約 50 字。",
+    "long": "用條列加段落混合，完整保留所有重點與細節。",
+}
+
+def build_instructions(style: str) -&gt; str:
+    return f"""
+你是一位專業的中文編輯，專長是把長文章整理成清晰的摘要。
+
+規則：
+1. 使用繁體中文
+2. 保留所有關鍵資訊與決策
+3. {STYLE_HINTS[style]}
+4. 不評論、不延伸、不加沒講過的資訊
+""".strip()</code></pre>
+
+<p>這就是「把 prompt 模板化」最簡單的做法——準備幾個變化版本，用 f-string 拼起來。</p>
+
+<h2>處理錯誤</h2>
+
+<p>實際工具會遇到的錯誤：</p>
+
+<ul>
+  <li>輸入檔不存在</li>
+  <li>輸入檔讀不到（權限、編碼）</li>
+  <li>輸入是空的</li>
+  <li>網路斷線、API key 過期</li>
+  <li>模型回了空字串</li>
+</ul>
+
+<p>不需要每種都處理得很完美，但<strong>最常見的幾種要接住，給使用者看得懂的訊息</strong>：</p>
+
+<pre><code>def read_input(path: Path) -&gt; str:
+    try:
+        text = path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        print(f"錯誤：找不到檔案 {path}", file=sys.stderr)
+        sys.exit(1)
+    except UnicodeDecodeError:
+        print(f"錯誤：{path} 不是 UTF-8 編碼", file=sys.stderr)
+        sys.exit(1)
+
+    if not text.strip():
+        print(f"錯誤：{path} 是空檔案", file=sys.stderr)
+        sys.exit(1)
+
+    return text</code></pre>
+
+<div class="callout note">
+  <span class="label">Note</span>
+  <code>sys.stderr</code> 是「錯誤訊息的標準輸出通道」，跟一般 <code>print()</code> 用的 <code>stdout</code> 分開。這在實務上很有用——使用者可以做 <code>python summarize.py input.txt &gt; output.txt</code>，正常輸出會寫進 <code>output.txt</code>，錯誤訊息會留在螢幕上。<code>sys.exit(1)</code> 則告訴外面的程式「我失敗了」（0 是成功、非 0 是失敗），這在腳本串接時很重要。
+</div>
+
+<h2>把所有東西組起來</h2>
+
+<p>完整的 <code>summarize.py</code>：</p>
+
+<pre><code>import argparse
+import sys
+from pathlib import Path
+
+from dotenv import load_dotenv
+from openai import OpenAI
+
+load_dotenv()
+client = OpenAI()
+
+STYLE_HINTS = {
+    "short": "用 3 個條列，每條不超過 30 字。",
+    "medium": "用 5 到 8 個條列，每條約 50 字。",
+    "long": "用條列加段落混合，完整保留所有重點與細節。",
+}
+
+def build_instructions(style: str) -&gt; str:
+    return f"""
+你是一位專業的中文編輯，專長是把長文章整理成清晰的摘要。
+
+規則：
+1. 使用繁體中文
+2. 保留所有關鍵資訊與決策
+3. {STYLE_HINTS[style]}
+4. 不評論、不延伸、不加沒講過的資訊
+""".strip()
+
+def summarize(text: str, style: str) -&gt; str:
+    response = client.responses.create(
+        model="gpt-4o",
+        instructions=build_instructions(style),
+        input=text,
+        temperature=0.3,
+    )
+    return response.output_text
+
+def read_input(path: Path) -&gt; str:
+    try:
+        text = path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        print(f"錯誤：找不到檔案 {path}", file=sys.stderr)
+        sys.exit(1)
+    except UnicodeDecodeError:
+        print(f"錯誤：{path} 不是 UTF-8 編碼", file=sys.stderr)
+        sys.exit(1)
+
+    if not text.strip():
+        print(f"錯誤：{path} 是空檔案", file=sys.stderr)
+        sys.exit(1)
+
+    return text
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="文字摘要工具")
+    parser.add_argument("input", help="輸入檔案路徑")
+    parser.add_argument(
+        "-o", "--output",
+        default=None,
+        help="輸出檔案路徑（預設：輸入檔同名 .summary.md）",
+    )
+    parser.add_argument(
+        "-s", "--style",
+        choices=["short", "medium", "long"],
+        default="medium",
+        help="摘要風格（預設：medium）",
+    )
+    return parser.parse_args()
+
+def main() -&gt; None:
+    args = parse_args()
+    input_path = Path(args.input)
+    output_path = Path(args.output) if args.output else input_path.with_suffix(".summary.md")
+
+    text = read_input(input_path)
+    print(f"正在處理 {input_path}（{len(text)} 字）...", file=sys.stderr)
+
+    summary = summarize(text, args.style)
+    output_path.write_text(summary, encoding="utf-8")
+    print(f"摘要已輸出到 {output_path}")
+
+if __name__ == "__main__":
+    main()</code></pre>
+
+<p>用法：</p>
+
+<pre><code>python summarize.py notes.txt
+python summarize.py notes.txt --style short
+python summarize.py notes.txt -s long -o final.md
+python summarize.py --help</code></pre>
+
+<p><code>--help</code> 會自動印出 argparse 幫你產生的說明，包括所有參數、預設值、選項。</p>
+
+<h2>對檔案大小要小心</h2>
+
+<p>你可能會想：「我把整本 30 萬字的小說丟進去摘要不就好了？」</p>
+
+<p>別這樣。原因：</p>
+
+<ol>
+  <li><strong>模型有 context window 上限</strong>——<code>gpt-4o</code> 大約 128k tokens（約 10 萬中文字），超過會 truncate 或報錯</li>
+  <li><strong>單次呼叫越長，越貴</strong>——成本跟 token 數成正比</li>
+  <li><strong>長文摘要品質會下降</strong>——模型對「文件中間」的記憶比較弱</li>
+</ol>
+
+<div class="callout warning">
+  <span class="label">Warning</span>
+  對於可能超過模型 context window 的長文件，<strong>不要把整份丟進去</strong>。本課 Chapter 11 會教「分段處理」的模式——把文件切成小段、各自摘要、再合併。同樣的思路會用在 Chapter 11 的長音檔轉錄。
+</div>
+
+<p>對本章的工具，建議在 <code>read_input()</code> 加個檢查：</p>
+
+<pre><code>MAX_CHARS = 50000  # 約 5 萬中文字，安全範圍
+
+if len(text) &gt; MAX_CHARS:
+    print(f"錯誤：檔案太大（{len(text)} 字），請先分段。", file=sys.stderr)
+    sys.exit(1)</code></pre>
+
+<h2>小結</h2>
+
+<p>這章把 API 呼叫從「在編輯器按執行」進化成「真正能用的命令列工具」：</p>
+
+<ol>
+  <li><strong><code>argparse</code></strong> 處理命令列參數，含 <code>--help</code></li>
+  <li><strong><code>Path.with_suffix()</code></strong> 自動產生輸出檔名</li>
+  <li><strong>錯誤處理</strong>用 <code>sys.stderr</code> 跟 <code>sys.exit(1)</code>，配合 shell 慣例</li>
+  <li><strong>Prompt 模板化</strong>：用 dict + f-string 切換風格</li>
+  <li><strong>檔案大小檢查</strong>：避免不小心把太大檔案丟進去</li>
+</ol>
+
+<p>下一章我們轉換主題，從文字進入<strong>音訊</strong>——學怎麼把 MP3 / WAV 轉成文字。</p>
+
+<h2>練習</h2>
+
+<ol>
+  <li>跑一次 <code>python summarize.py --help</code>，看 argparse 自動產生的說明。</li>
+  <li>加一個 <code>--language</code> 參數，可選 <code>zh</code>、<code>en</code>、<code>ja</code>，並在 instructions 反映。</li>
+  <li>加一個 <code>--model</code> 參數，可選 <code>gpt-4o</code>、<code>gpt-4o-mini</code>，比較兩者輸出品質與你會用哪個。</li>
+  <li>改寫成「批次模式」：給定一個資料夾，自動對裡面所有 <code>.txt</code> 檔做摘要。（提示：<code>Path("docs").glob("*.txt")</code>）</li>
+</ol>
+<div class="chapter-nav">
+  <a class="nav-prev" href="#ch07">← 上一章：Prompt 基礎</a>
+  <a class="nav-top" href="#top">↑ 回目錄</a>
+  <a class="nav-next" href="#ch09">下一章：Speech to Text →</a>
+</div>
+</section>
+
+<section id="ch09" class="chapter">
+<p class="chapter-label">Chapter 9</p>
+<h1>Speech to Text</h1>
+
+<p>從這章開始，我們從「文字輸入、文字輸出」進入「音訊輸入、文字輸出」。本課的最終專案是「會議逐字稿工具」，這章是其中最核心的能力：把 MP3 或 WAV 變成文字。</p>
+
+<h2>為什麼有兩個轉錄模型？</h2>
+
+<p>翻開 OpenAI 文件你會發現，能做語音轉文字的模型有兩個：<code>whisper-1</code> 跟 <code>gpt-4o-transcribe</code>（還有更便宜的 <code>gpt-4o-mini-transcribe</code>）。第一次看到的人通常會問：怎麼選？</p>
+
+<p>故事要從 2022 年講起。那年 OpenAI 開源了一個叫做 Whisper 的語音辨識模型，丟到 Hugging Face 上免費讓人下載。它的特色是「多語言、抗噪、長音檔也能處理」，當時很轟動——因為這種品質的模型，以前要付錢給 Google 或 AWS 才用得到。後來 OpenAI 把它包進 API，命名為 <code>whisper-1</code>，定價也很低，是這幾年很多會議轉錄、podcast 字幕工具的主力。</p>
+
+<p>到了 2024 年底，OpenAI 把更新一代的多模態能力（也就是 GPT-4o 那一套）也訓練成可以聽音檔，推出了 <code>gpt-4o-transcribe</code> 跟更小的 <code>gpt-4o-mini-transcribe</code>。這兩個模型的辨識品質比 <code>whisper-1</code> 更好，特別是在口音重、背景吵、專有名詞多的情境下差距明顯。但代價是，每分鐘的價格也比較高。</p>
+
+<p>怎麼選？務實的答案是：</p>
+
+<ul>
+  <li><strong>練習、便宜、量大、品質可接受就好</strong>：用 <code>whisper-1</code></li>
+  <li><strong>正式產品、會議紀錄、要求準確度</strong>：用 <code>gpt-4o-transcribe</code></li>
+  <li><strong>介於兩者之間</strong>：用 <code>gpt-4o-mini-transcribe</code></li>
+</ul>
+
+<p>本章的範例都會用 <code>gpt-4o-transcribe</code>，因為這套課的主軸是「做一個能用的會議逐字稿工具」，品質優先。但練習裡我們會故意叫你用 <code>whisper-1</code> 跑同一個音檔，親自比較看看，建立自己對「值不值得多付那點錢」的直覺。</p>
+
+<h2>最簡單的範例</h2>
+
+<p>把一個 MP3 轉成文字，需要的程式碼短得驚人：</p>
+
+<pre><code>from dotenv import load_dotenv
+from openai import OpenAI
+
+load_dotenv()
+client = OpenAI()
+
+with open("meeting.mp3", "rb") as audio_file:
+    transcription = client.audio.transcriptions.create(
+        model="gpt-4o-transcribe",
+        file=audio_file,
+        language="zh",
+    )
+
+print(transcription.text)</code></pre>
+
+<p>幾個重點：</p>
+
+<ul>
+  <li><strong><code>open(..., "rb")</code></strong>：用 binary 模式開啟。音檔是二進位資料，不是文字</li>
+  <li><strong><code>client.audio.transcriptions.create()</code></strong>：這次不是 <code>responses.create</code>，是另一個 endpoint</li>
+  <li><strong><code>language="zh"</code></strong>：明確告訴模型「這段是中文」，可以省一點 token 並且提升準確度</li>
+  <li><strong><code>transcription.text</code></strong>：直接拿出辨識結果文字</li>
+</ul>
+
+<div class="callout tip">
+  <span class="label">Tip</span>
+  為什麼要寫 <code>language="zh"</code>？模型可以自動偵測，但對中文音檔特別建議手動指定。原因是中英文混雜的情境下（例如會議裡突然冒出英文專有名詞），自動偵測偶爾會「跳」到英文模式，把後面的中文也用英文音標寫出來。明確指定 <code>zh</code> 可以避免這個問題。完整的 language code 看 ISO 639-1（例如英文 <code>en</code>、日文 <code>ja</code>、韓文 <code>ko</code>）。
+</div>
+
+<h2>把它變成可重用的函式</h2>
+
+<p>跟 Chapter 8 一樣，我們把這個能力包成一個工具：</p>
+
+<pre><code>from pathlib import Path
+from dotenv import load_dotenv
+from openai import OpenAI
+
+load_dotenv()
+client = OpenAI()
+
+def transcribe(
+    audio_path: Path,
+    model: str = "gpt-4o-transcribe",
+    language: str = "zh",
+) -&gt; str:
+    with open(audio_path, "rb") as f:
+        result = client.audio.transcriptions.create(
+            model=model,
+            file=f,
+            language=language,
+        )
+    return result.text</code></pre>
+
+<p>呼叫方式：</p>
+
+<pre><code>text = transcribe(Path("meeting.mp3"))
+print(text)</code></pre>
+
+<h2>25MB 的限制</h2>
+
+<p>OpenAI 對音檔轉錄有一個重要限制：<strong>單次請求的音檔不能超過 25MB</strong>。</p>
+
+<p>這聽起來很大，但實際上很容易爆。粗略估算：</p>
+
+<ul>
+  <li><strong>MP3 128kbps</strong>：每分鐘約 1MB → 25 分鐘</li>
+  <li><strong>WAV 44.1kHz stereo</strong>：每分鐘約 10MB → 2.5 分鐘</li>
+  <li><strong>WAV 16kHz mono</strong>：每分鐘約 2MB → 12.5 分鐘</li>
+</ul>
+
+<p>對一場一小時的會議錄音來說，<strong>怎麼處理都會超過 25MB</strong>。這是為什麼下一章我們要學 ffmpeg：用它把音檔壓縮成適合丟進 API 的格式（16kHz mono MP3），然後 Chapter 11 我們會學「分段轉錄」處理超過單檔大小的情況。</p>
+
+<div class="callout warning">
+  <span class="label">Warning</span>
+  直接把超過 25MB 的檔案丟進 API，你會得到一個 <code>413 Request Entity Too Large</code> 錯誤。<strong>這個錯誤不會等到處理完才出現，是上傳到一半被中斷</strong>——錢不會花，但時間白費。<strong>所以丟之前先檢查檔案大小</strong>：<code>audio_path.stat().st_size</code> 拿到 byte 數，除以 <code>1024 * 1024</code> 得 MB。
+</div>
+
+<h2>支援的音檔格式</h2>
+
+<p>API 接受的格式有：</p>
+
+<pre><code>mp3, mp4, mpeg, mpga, m4a, wav, webm, flac, ogg</code></pre>
+
+<p>幾乎所有常見的音訊跟影片容器格式都支援。<strong>如果丟影片</strong>（例如 mp4），API 會自動只處理音軌，視覺部分忽略。這對處理錄製會議的 Zoom mp4 很方便。</p>
+
+<p>不支援的格式（例如 wma、ra）就要先用 ffmpeg 轉，下一章會講。</p>
+
+<h2>加上時間戳記</h2>
+
+<p>預設的 <code>transcription.text</code> 只是純文字，沒有時間資訊。但會議逐字稿通常希望知道「這句話是第幾分鐘講的」。OpenAI API 支援 <code>response_format</code> 參數：</p>
+
+<pre><code>result = client.audio.transcriptions.create(
+    model="gpt-4o-transcribe",
+    file=f,
+    language="zh",
+    response_format="verbose_json",
+    timestamp_granularities=["segment"],
+)</code></pre>
+
+<p><code>response_format="verbose_json"</code> 會讓 API 回傳完整的結構化資料，包含每一段的開始時間、結束時間、文字。<code>timestamp_granularities=["segment"]</code> 指定要分段時間戳。</p>
+
+<p>回傳的物件用法：</p>
+
+<pre><code>for segment in result.segments:
+    start = segment.start
+    end = segment.end
+    text = segment.text
+    print(f"[{start:.1f}s - {end:.1f}s] {text}")</code></pre>
+
+<div class="callout note">
+  <span class="label">Note</span>
+  <code>gpt-4o-transcribe</code> 跟 <code>whisper-1</code> 對 <code>response_format</code> 與 <code>timestamp_granularities</code> 的支援略有差異——<code>whisper-1</code> 支援字級時間戳（<code>word</code>），<code>gpt-4o-transcribe</code> 在本書寫作當下還只支援段級（<code>segment</code>）。要做字幕（SRT）、字級對齊類工具，目前 <code>whisper-1</code> 比較完整。OpenAI 的功能差異會隨時間變動，呼叫前看一下 API 文件。
+</div>
+
+<h2>完整範例：命令列轉錄工具</h2>
+
+<p>把這章學的東西組合成一個工具 <code>transcribe.py</code>：</p>
+
+<pre><code>import argparse
+import sys
+from pathlib import Path
+
+from dotenv import load_dotenv
+from openai import OpenAI
+
+load_dotenv()
+client = OpenAI()
+
+MAX_MB = 25
+SUPPORTED_EXTS = {".mp3", ".mp4", ".mpeg", ".mpga", ".m4a", ".wav", ".webm", ".flac", ".ogg"}
+
+def transcribe(audio_path: Path, model: str, language: str) -&gt; str:
+    size_mb = audio_path.stat().st_size / (1024 * 1024)
+    if size_mb &gt; MAX_MB:
+        print(f"錯誤：{audio_path} 是 {size_mb:.1f}MB，超過 {MAX_MB}MB 上限。請先用 ffmpeg 壓縮（見 Chapter 10）。", file=sys.stderr)
+        sys.exit(1)
+
+    with open(audio_path, "rb") as f:
+        result = client.audio.transcriptions.create(
+            model=model,
+            file=f,
+            language=language,
+        )
+    return result.text
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="音檔轉文字工具")
+    parser.add_argument("input", help="音檔路徑")
+    parser.add_argument("-o", "--output", help="輸出 txt 路徑（預設：輸入同名 .txt）")
+    parser.add_argument("-m", "--model", default="gpt-4o-transcribe",
+                        choices=["gpt-4o-transcribe", "gpt-4o-mini-transcribe", "whisper-1"])
+    parser.add_argument("-l", "--language", default="zh")
+    return parser.parse_args()
+
+def main() -&gt; None:
+    args = parse_args()
+    input_path = Path(args.input)
+
+    if not input_path.exists():
+        print(f"錯誤：找不到 {input_path}", file=sys.stderr)
+        sys.exit(1)
+    if input_path.suffix.lower() not in SUPPORTED_EXTS:
+        print(f"錯誤：不支援的格式 {input_path.suffix}", file=sys.stderr)
+        sys.exit(1)
+
+    output_path = Path(args.output) if args.output else input_path.with_suffix(".txt")
+
+    print(f"轉錄中（{args.model}）...", file=sys.stderr)
+    text = transcribe(input_path, args.model, args.language)
+    output_path.write_text(text, encoding="utf-8")
+    print(f"逐字稿已輸出到 {output_path}")
+
+if __name__ == "__main__":
+    main()</code></pre>
+
+<p>用法：</p>
+
+<pre><code>python transcribe.py meeting.mp3
+python transcribe.py meeting.m4a -m whisper-1 -l en
+python transcribe.py meeting.mp3 -o transcript.txt</code></pre>
+
+<h2>小結</h2>
+
+<ol>
+  <li><strong>兩種主要的轉錄模型</strong>：<code>whisper-1</code> 老牌便宜、<code>gpt-4o-transcribe</code> 新代品質高</li>
+  <li><strong><code>client.audio.transcriptions.create()</code></strong> + <code>open(file, "rb")</code> 是基本骨架</li>
+  <li><strong><code>language</code> 參數要設定</strong>——中文音檔特別有幫助</li>
+  <li><strong>25MB 是硬限制</strong>——下一章我們會用 ffmpeg 解決</li>
+  <li><strong><code>response_format="verbose_json"</code></strong> 拿到段級時間戳，做字幕或會議紀錄會用到</li>
+</ol>
+
+<p>下一章我們深入音訊格式——MP3 vs WAV、取樣率、聲道——並學會用 ffmpeg 把任何音檔壓到適合 API 的大小與品質。</p>
+
+<h2>練習</h2>
+
+<ol>
+  <li>找一個你手邊的短 MP3（&lt; 25MB），用本章的程式轉成文字。</li>
+  <li>同一個音檔用 <code>whisper-1</code> 與 <code>gpt-4o-transcribe</code> 各跑一次，比較辨識準確度與耗時。</li>
+  <li>把 <code>response_format="verbose_json"</code> 加進去，印出每一段的時間範圍與文字。</li>
+  <li>故意丟一個 30MB 的 WAV 進去，確認程式有檢查並回報錯誤（不會浪費上傳時間）。</li>
+</ol>
+<div class="chapter-nav">
+  <a class="nav-prev" href="#ch08">← 上一章：做一個文字小工具</a>
+  <a class="nav-top" href="#top">↑ 回目錄</a>
+  <a class="nav-next" href="#ch10">下一章：音訊格式與 ffmpeg 基礎 →</a>
+</div>
+</section>
+
+<section id="ch10" class="chapter">
+<p class="chapter-label">Chapter 10</p>
+<h1>音訊格式與 ffmpeg 基礎</h1>
+
+<p>上一章我們學會把音檔丟進 API 轉成文字。但有個 25MB 的硬限制——一場一小時的會議錄音怎麼樣都會超過。這章我們解決這個問題，順便把「音訊格式」這件事真正講清楚。</p>
+
+<h2>為什麼語音辨識偏愛 16kHz mono WAV？</h2>
+
+<p>等一下我們要用 <code>ffmpeg</code> 把音檔轉成 <code>16kHz mono WAV</code>。指令長這樣：</p>
+
+<pre><code>ffmpeg -y -i meeting.mp3 -ac 1 -ar 16000 -vn -f wav -acodec pcm_s16le meeting_16k_mono.wav</code></pre>
+
+<p>看起來像咒語。學員的合理疑問是：為什麼是 16kHz？為什麼要 mono？為什麼要 WAV 不繼續用 MP3？這些選擇不是隨便的，背後有具體理由。</p>
+
+<p><strong>為什麼 16kHz？</strong> 人類講話的能量主要集中在 300Hz 到 3400Hz——這也是傳統電話只取樣到 8kHz 的原因。語音辨識模型通常用 16kHz 訓練，因為這個取樣率剛好涵蓋了人聲的關鍵頻段，又不會像 44.1kHz（CD 品質）那樣帶進一堆對辨識沒幫助的高頻噪音。把音樂用的 44.1kHz 餵給語音模型，模型不會比較準，反而檔案大了快三倍。</p>
+
+<p><strong>為什麼 mono？</strong> 會議錄音很多時候是雙聲道（左右麥克風或立體聲），但語音辨識只在意「有人在講什麼」，不在意「他坐在你左邊還是右邊」。轉成 mono 把兩個聲道合併，檔案小一半、辨識結果幾乎沒差。如果你的錄音是兩個人各佔一個聲道（例如線上會議的單獨軌錄音），那是另一個問題——你應該分軌轉錄，而不是合成 mono。</p>
+
+<p><strong>為什麼 WAV 不用 MP3？</strong> MP3 是有損壓縮，為了讓檔案變小，它丟掉了一些人耳不容易察覺的細節。對聽音樂來說沒差，但對模型來說，那些被丟掉的細節有時候正是它判斷子音、尾音的線索。WAV 配 PCM 是未壓縮的原始音訊，給模型最完整的資料。當然 WAV 檔案會大很多——如果你只是要儲存或傳輸，再壓回 MP3 就好。WAV 的角色是「給模型吃的格式」，不是「給人類儲存的格式」。</p>
+
+<p>所以那串指令在做什麼，重講一次就清楚了：把任意音檔轉成「16kHz 取樣、單聲道、未壓縮的 WAV」——這是給語音模型最理想的食物。</p>
+
+<div class="callout note">
+  <span class="label">Note</span>
+  講「給模型最理想的食物」並不表示其他格式不行。OpenAI 的 API 內部其實會幫你做必要的轉換——丟 44.1kHz stereo MP3 也會跑、結果也不會明顯差。差別在<strong>檔案大小</strong>：同一段 1 小時的會議，44.1kHz stereo WAV 可能 600MB，16kHz mono MP3 可能 30MB。後者你還可能直接丟進 25MB API（如果再壓到 64kbps 大概勉強進得去），前者一定爆。所以這章學的不只是「品質優化」，更是「成本與可行性」。
+</div>
+
+<h2>Container vs Codec</h2>
+
+<p>寫這套課最常被問的一個問題：「MP3 跟 WAV 差在哪？」</p>
+
+<p>正確的答案需要先分開兩個概念：</p>
+
+<ul>
+  <li><strong>Container（容器）</strong>：檔案的「外包裝」，副檔名通常代表它。例如 <code>.mp3</code>、<code>.wav</code>、<code>.m4a</code>、<code>.ogg</code>、<code>.mp4</code>。</li>
+  <li><strong>Codec（編解碼器）</strong>：實際把聲音壓縮/還原的演算法。例如 MP3 codec、AAC、Opus、PCM、FLAC。</li>
+</ul>
+
+<p>MP3 比較特別——容器跟 codec 同名。但一般情況下兩者可以分開：</p>
+
+<ul>
+  <li><code>.wav</code> 容器裡面通常裝 PCM（未壓縮），但偶爾也裝壓縮資料</li>
+  <li><code>.m4a</code> 容器裡面通常是 AAC codec</li>
+  <li><code>.mp4</code> 容器裡面可以同時有 AAC 音訊跟 H.264 影像</li>
+</ul>
+
+<p>這個區別在你看 ffmpeg 指令時會清楚很多：<code>-f wav</code> 指定容器格式，<code>-acodec pcm_s16le</code> 指定音訊 codec。兩個分開設定。</p>
+
+<h2>用 ffprobe 看音檔有什麼</h2>
+
+<p><code>ffprobe</code> 是 ffmpeg 附帶的「音訊偵探」工具，告訴你檔案的真相：</p>
+
+<pre><code>ffprobe -v error -show_format -show_streams -print_format json meeting.mp3</code></pre>
+
+<p>輸出（節錄）：</p>
+
+<pre><code>{
+  "streams": [
+    {
+      "codec_name": "mp3",
+      "codec_type": "audio",
+      "sample_rate": "44100",
+      "channels": 2,
+      "bit_rate": "128000",
+      "duration": "1832.5"
+    }
+  ],
+  "format": {
+    "filename": "meeting.mp3",
+    "duration": "1832.5",
+    "size": "29320192",
+    "bit_rate": "128043"
+  }
+}</code></pre>
+
+<p>可以看到：</p>
+
+<ul>
+  <li>取樣率 44100 Hz</li>
+  <li>2 聲道（stereo）</li>
+  <li>128 kbps bitrate</li>
+  <li>約 30 分鐘長</li>
+  <li>約 30 MB</li>
+</ul>
+
+<p>這就告訴我們：<strong>這個檔案太大，無法直接丟進 OpenAI API</strong>。但只要轉換取樣率與聲道，可以壓很多。</p>
+
+<h2>用 ffmpeg 轉成語音辨識友善格式</h2>
+
+<p>最常用的指令：</p>
+
+<pre><code>ffmpeg -y -i meeting.mp3 -ac 1 -ar 16000 -vn -f wav -acodec pcm_s16le meeting_16k_mono.wav</code></pre>
+
+<p>把參數拆開：</p>
+
+<table>
+  <thead>
+    <tr><th>參數</th><th>意思</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>-y</code></td><td>覆蓋目標檔案不問</td></tr>
+    <tr><td><code>-i meeting.mp3</code></td><td>輸入檔案</td></tr>
+    <tr><td><code>-ac 1</code></td><td>audio channels = 1（mono）</td></tr>
+    <tr><td><code>-ar 16000</code></td><td>audio rate = 16000 Hz</td></tr>
+    <tr><td><code>-vn</code></td><td>去掉視訊流（如果輸入是 mp4）</td></tr>
+    <tr><td><code>-f wav</code></td><td>強制輸出容器格式為 wav</td></tr>
+    <tr><td><code>-acodec pcm_s16le</code></td><td>音訊 codec 用 16-bit PCM little-endian（最相容的選項）</td></tr>
+    <tr><td><code>meeting_16k_mono.wav</code></td><td>輸出檔案</td></tr>
+  </tbody>
+</table>
+
+<p>轉換完用 ffprobe 檢查一下，會看到新檔案是 16kHz mono PCM WAV。</p>
+
+<div class="callout tip">
+  <span class="label">Tip</span>
+  ffmpeg 的指令以彈性出名，但也以難記出名。一個實用建議：<strong>把常用指令做成 shell 函式或 alias</strong>。例如在你的 <code>~/.zshrc</code> 或 <code>~/.bashrc</code> 加上：<code>function to-asr() { ffmpeg -y -i "$1" -ac 1 -ar 16000 -vn -f wav -acodec pcm_s16le "${1%.*}_16k_mono.wav"; }</code>——以後一行 <code>to-asr meeting.mp3</code> 就搞定。
+</div>
+
+<h2>壓縮成更小的 MP3</h2>
+
+<p>如果你想保留 MP3 容器但讓檔案變小（例如希望剛好塞進 25MB 限制）：</p>
+
+<pre><code>ffmpeg -y -i meeting.mp3 -ac 1 -ar 16000 -b:a 64k meeting_small.mp3</code></pre>
+
+<p><code>-b:a 64k</code> 指定音訊 bitrate 64 kbps。這對人聲來說品質夠用了，比原本 128 kbps 小一半，又比 WAV 小很多。一小時的會議大約 30MB（如果原本 stereo 44.1k）會壓到 28MB 左右——勉強過 OpenAI 的 25MB 線需要再低一點，例如 <code>-b:a 48k</code>。</p>
+
+<div class="callout note">
+  <span class="label">Note</span>
+  Bitrate 越低，「壓得越扁」——以人耳來說 64k 已經明顯比 128k 差，但對語音辨識來說 64k 的辨識率掉一點點，48k 開始有感。<strong>不要為了過 25MB 線壓得太兇</strong>——Chapter 11 我們會學「分段」，那是更穩健的解法。
+</div>
+
+<h2>在 Python 裡呼叫 ffmpeg</h2>
+
+<p>實務上我們不會手動下指令，而是讓 Python 呼叫 ffmpeg。標準做法用 <code>subprocess</code>：</p>
+
+<pre><code>import subprocess
+from pathlib import Path
+
+def convert_to_asr_friendly(input_path: Path) -&gt; Path:
+    output_path = input_path.with_name(f"{input_path.stem}_16k_mono.wav")
+    subprocess.run(
+        [
+            "ffmpeg", "-y",
+            "-i", str(input_path),
+            "-ac", "1",
+            "-ar", "16000",
+            "-vn",
+            "-f", "wav",
+            "-acodec", "pcm_s16le",
+            str(output_path),
+        ],
+        check=True,
+        capture_output=True,
+    )
+    return output_path</code></pre>
+
+<p>幾個重點：</p>
+
+<ul>
+  <li>指令用 list 傳，不是字串——避免 shell injection</li>
+  <li><code>check=True</code> 讓 ffmpeg 失敗時 Python 也丟 exception</li>
+  <li><code>capture_output=True</code> 把 ffmpeg 的輸出抓住，不會弄髒終端機</li>
+</ul>
+
+<div class="callout warning">
+  <span class="label">Warning</span>
+  <code>subprocess.run</code> 預設不會把 ffmpeg 的詳細錯誤訊息給你。如果遇到失敗，記得 catch <code>subprocess.CalledProcessError</code> 並印出 <code>e.stderr.decode()</code>——ffmpeg 把所有有用的錯誤資訊都印在 stderr。
+</div>
+
+<h2>用 ffprobe 拿時長</h2>
+
+<p>知道音檔長度對「估算 API 成本」「規劃切段」很重要。<code>ffprobe</code> 也能用 Python 呼叫：</p>
+
+<pre><code>import json
+import subprocess
+from pathlib import Path
+
+def get_duration(audio_path: Path) -&gt; float:
+    result = subprocess.run(
+        [
+            "ffprobe", "-v", "error",
+            "-show_format", "-print_format", "json",
+            str(audio_path),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    info = json.loads(result.stdout)
+    return float(info["format"]["duration"])</code></pre>
+
+<p>呼叫：</p>
+
+<pre><code>duration = get_duration(Path("meeting.mp3"))
+print(f"音檔長度：{duration:.1f} 秒（{duration/60:.1f} 分鐘）")</code></pre>
+
+<h2>整合範例：自動準備音檔</h2>
+
+<p>把這章的東西組合成一個工具：給定任何音檔，自動轉成 ASR 友善格式，並回報轉換後的大小：</p>
+
+<pre><code>import json
+import subprocess
+import sys
+from pathlib import Path
+
+def get_info(path: Path) -&gt; dict:
+    result = subprocess.run(
+        ["ffprobe", "-v", "error", "-show_format", "-show_streams",
+         "-print_format", "json", str(path)],
+        check=True, capture_output=True, text=True,
+    )
+    return json.loads(result.stdout)
+
+def convert(input_path: Path) -&gt; Path:
+    output_path = input_path.with_name(f"{input_path.stem}_16k_mono.wav")
+    subprocess.run(
+        ["ffmpeg", "-y", "-i", str(input_path),
+         "-ac", "1", "-ar", "16000", "-vn",
+         "-f", "wav", "-acodec", "pcm_s16le",
+         str(output_path)],
+        check=True, capture_output=True,
+    )
+    return output_path
+
+def main(input_str: str) -&gt; None:
+    input_path = Path(input_str)
+    if not input_path.exists():
+        print(f"找不到 {input_path}", file=sys.stderr); sys.exit(1)
+
+    info = get_info(input_path)
+    before_mb = input_path.stat().st_size / (1024 * 1024)
+    duration = float(info["format"]["duration"])
+    print(f"原始：{before_mb:.1f} MB, 時長：{duration/60:.1f} 分鐘")
+
+    output_path = convert(input_path)
+    after_mb = output_path.stat().st_size / (1024 * 1024)
+    print(f"轉換後：{output_path.name}（{after_mb:.1f} MB）")
+
+if __name__ == "__main__":
+    main(sys.argv[1])</code></pre>
+
+<p>跑：</p>
+
+<pre><code>python prepare_audio.py meeting.mp3</code></pre>
+
+<h2>小結</h2>
+
+<ol>
+  <li><strong>Container 跟 Codec 是兩件事</strong>——副檔名通常代表 container，內部可以裝不同 codec</li>
+  <li><strong><code>ffprobe</code> 看音檔資訊</strong>——時長、取樣率、聲道、bitrate</li>
+  <li><strong><code>ffmpeg</code> 轉檔</strong>——<code>-ac 1 -ar 16000</code> 是語音辨識友善格式的核心兩個參數</li>
+  <li><strong>語音辨識想要 16kHz mono</strong>——更高品質對辨識無幫助，反而檔案大</li>
+  <li><strong>Python 用 <code>subprocess.run</code> 呼叫 ffmpeg</strong>——指令用 list 傳，<code>check=True</code> 抓失敗</li>
+  <li><strong><code>-b:a 64k</code> 是常用 MP3 bitrate</strong>——對語音辨識來說品質夠</li>
+</ol>
+
+<p>下一章我們解決真正的痛點：一小時的會議錄音怎麼分段送進 API、結果怎麼合併。</p>
+
+<h2>練習</h2>
+
+<ol>
+  <li>找一個你手邊的音檔，用 <code>ffprobe</code> 看它的資訊（取樣率、聲道、bitrate、時長）。</li>
+  <li>把這個音檔用 <code>ffmpeg</code> 轉成 16kHz mono WAV，比較轉換前後檔案大小。</li>
+  <li>再轉成 16kHz mono MP3 64kbps，比較三種版本的大小：原始 / WAV / MP3。</li>
+  <li>寫一個 Python 函式 <code>audio_summary(path)</code>，回傳一個 dict 包含：時長（秒）、檔案大小（MB）、取樣率、聲道數。</li>
+</ol>
+<div class="chapter-nav">
+  <a class="nav-prev" href="#ch09">← 上一章：Speech to Text</a>
+  <a class="nav-top" href="#top">↑ 回目錄</a>
+  <a class="nav-next" href="#ch11">下一章：長音檔切段與轉錄 →</a>
+</div>
+</section>
+
+<section id="ch11" class="chapter">
+<p class="chapter-label">Chapter 11</p>
+<h1>長音檔切段與轉錄</h1>
+
+<p>到目前為止，我們的轉錄工具只能處理小於 25MB 的音檔。但實際情境裡，一場真正的會議錄音很少在這個範圍——一小時 mp3 大概 30 到 60MB。</p>
+
+<p>這章我們解決這個問題：<strong>把長音檔切成多段、各自轉錄、再把結果合併</strong>。聽起來簡單，但有幾個細節決定品質好壞。</p>
+
+<h2>整體流程</h2>
+
+<pre><code>原始音檔
+  ↓ ffmpeg 轉成 16kHz mono WAV
+  ↓ 計算總時長
+  ↓ 決定切段大小
+  ↓ ffmpeg 切成多段 WAV
+  ↓ 逐段呼叫 OpenAI API 轉錄
+  ↓ 合併成一份完整逐字稿</code></pre>
+
+<p>每一步我們都已經有零件了。這章把它們串起來。</p>
+
+<h2>切段策略：為什麼不能簡單切</h2>
+
+<p>最天真的做法是「每 5 分鐘切一刀」：</p>
+
+<pre><code>ffmpeg -i meeting.wav -f segment -segment_time 300 -c copy out_%03d.wav</code></pre>
+
+<p>這樣會產生 <code>out_000.wav</code>、<code>out_001.wav</code>...每段 5 分鐘。<strong>能跑</strong>，但有幾個問題：</p>
+
+<ol>
+  <li><strong>切點可能在某人講到一半</strong>——這句話會被斷成兩段，每段都不完整，模型容易誤判</li>
+  <li><strong>MP3 直接切會出現雜音</strong>——MP3 是有時間結構的壓縮格式，硬切會在切點處產生爆音</li>
+  <li><strong>沒有重疊</strong>——切點剛好那個字可能在兩段都不完整</li>
+</ol>
+
+<p><strong>更穩健的做法</strong>：先轉成 WAV（無壓縮）再切；切的時候加 1-2 秒重疊；如果可能，在靜音處切。</p>
+
+<div class="callout tip">
+  <span class="label">Tip</span>
+  「在靜音處切」是專業字幕工具（Aegisub、Premiere）的標準做法，叫做 <strong>silence detection</strong>。原理是用 ffmpeg 的 <code>silencedetect</code> filter 掃出所有停頓點，挑距離目標切點最近的停頓做切割。本課為了簡單，我們會用「固定時長 + 重疊」的近似做法，這對會議錄音來說已經夠用。要更嚴謹的，可以看 ffmpeg 的 <code>silencedetect</code> 文件，或者用 <code>pydub</code> 這類 library。
+</div>
+
+<h2>決定切段大小</h2>
+
+<p>切多大算合適？需要平衡三件事：</p>
+
+<ol>
+  <li><strong>每段要小於 25MB</strong>——OpenAI 硬限制</li>
+  <li><strong>段數不要太多</strong>——每段都是一次 API call，慢且貴</li>
+  <li><strong>段內上下文要夠</strong>——太短模型沒辦法理解語境</li>
+</ol>
+
+<p>對 16kHz mono WAV 來說：</p>
+
+<ul>
+  <li><strong>5 分鐘</strong> ≈ 約 10MB，安全進入 25MB 上限</li>
+  <li><strong>10 分鐘</strong> ≈ 約 20MB，接近上限但仍可</li>
+  <li><strong>15 分鐘</strong> ≈ 約 30MB，會爆</li>
+</ul>
+
+<p><strong>實務上建議 5 到 10 分鐘</strong>。本章範例用 10 分鐘 = 600 秒，加 5 秒重疊。</p>
+
+<h2>切段：ffmpeg 怎麼做</h2>
+
+<pre><code>import subprocess
+from pathlib import Path
+
+def split_audio(
+    input_path: Path,
+    output_dir: Path,
+    segment_seconds: int = 600,
+    overlap_seconds: int = 5,
+) -&gt; list[Path]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_pattern = output_dir / f"{input_path.stem}_%03d.wav"
+
+    step = segment_seconds - overlap_seconds
+
+    subprocess.run(
+        [
+            "ffmpeg", "-y",
+            "-i", str(input_path),
+            "-f", "segment",
+            "-segment_time", str(segment_seconds),
+            "-reset_timestamps", "1",
+            "-c", "copy",
+            str(output_pattern),
+        ],
+        check=True, capture_output=True,
+    )
+
+    return sorted(output_dir.glob(f"{input_path.stem}_*.wav"))</code></pre>
+
+<div class="callout note">
+  <span class="label">Note</span>
+  上面這個寫法為了單純沒做「真正的重疊」——它只是固定 10 分鐘切一刀。要真的有重疊得做兩次 ffmpeg pass 或用 <code>-ss</code> + <code>-t</code> 個別切每一段。對會議錄音這個近似已經夠用：模型對「一段話開頭被切掉前一句」的容忍度其實還不錯。如果你發現切點處有明顯遺漏，再升級到「個別切段、加重疊」的做法。
+</div>
+
+<h2>處理每一段</h2>
+
+<p>對每個切好的小檔，呼叫 Chapter 9 的轉錄函式：</p>
+
+<pre><code>from openai import OpenAI
+
+client = OpenAI()
+
+def transcribe_segment(audio_path: Path, model: str = "gpt-4o-transcribe") -&gt; str:
+    with open(audio_path, "rb") as f:
+        result = client.audio.transcriptions.create(
+            model=model,
+            file=f,
+            language="zh",
+        )
+    return result.text</code></pre>
+
+<p>但有幾個增強要做：</p>
+
+<p><strong>1. 顯示進度</strong>——長音檔可能要跑好幾分鐘：</p>
+
+<pre><code>def transcribe_all(segments: list[Path]) -&gt; list[str]:
+    texts = []
+    total = len(segments)
+    for i, segment in enumerate(segments, start=1):
+        print(f"[{i}/{total}] 轉錄 {segment.name}...", file=sys.stderr)
+        texts.append(transcribe_segment(segment))
+    return texts</code></pre>
+
+<p><strong>2. 失敗重試</strong>——網路或 API 偶爾會抽風：</p>
+
+<pre><code>import time
+
+def transcribe_with_retry(audio_path: Path, max_retries: int = 3) -&gt; str:
+    for attempt in range(1, max_retries + 1):
+        try:
+            return transcribe_segment(audio_path)
+        except Exception as e:
+            if attempt == max_retries:
+                raise
+            wait = 2 ** attempt
+            print(f"  失敗：{e}，{wait} 秒後重試...", file=sys.stderr)
+            time.sleep(wait)
+    return ""</code></pre>
+
+<p><code>2 ** attempt</code> 就是 2、4、8 秒的指數退避（exponential backoff）——這是處理網路問題的標準做法。</p>
+
+<div class="callout warning">
+  <span class="label">Warning</span>
+  注意 <code>except Exception</code> 在這裡是合理的——重試邏輯本來就要接住「任何網路或 API 錯誤」。但其他地方還是避免 catch-all。實務上更精確的寫法是接 <code>openai.APIError</code>, <code>requests.ConnectionError</code> 等具體類別。
+</div>
+
+<p><strong>3. 中途存檔</strong>——如果第 8 段失敗，前 7 段不要白做：</p>
+
+<pre><code>def transcribe_all_safe(segments: list[Path], cache_dir: Path) -&gt; list[str]:
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    texts = []
+    for i, segment in enumerate(segments, start=1):
+        cache_file = cache_dir / f"segment_{i:03d}.txt"
+        if cache_file.exists():
+            texts.append(cache_file.read_text(encoding="utf-8"))
+            continue
+
+        text = transcribe_with_retry(segment)
+        cache_file.write_text(text, encoding="utf-8")
+        texts.append(text)
+    return texts</code></pre>
+
+<p>這樣同一個音檔跑第二次時，已經完成的段會直接跳過。這對「跑到一半當機」「故意暫停換時段」的情境都很有用。</p>
+
+<h2>合併文字</h2>
+
+<p>各段轉錄完，要合併成一份完整逐字稿。最簡單的是直接接起來：</p>
+
+<pre><code>def merge_texts(texts: list[str]) -&gt; str:
+    return "\n\n".join(t.strip() for t in texts if t.strip())</code></pre>
+
+<p>但如果你之前留了 5 秒重疊，<strong>接點處會有重複句子</strong>。處理重複需要文字比對演算法（例如尋找前段最後一句與後段第一句的重疊），會複雜。本課的近似做法是<strong>用模型來做合併與清理</strong>：</p>
+
+<pre><code>def clean_transcript(raw: str) -&gt; str:
+    response = client.responses.create(
+        model="gpt-4o-mini",
+        instructions=(
+            "你會收到一份語音轉錄的逐字稿，可能有：\n"
+            "- 接點處的重複句子\n"
+            "- 語助詞「呃」「嗯」「就是」過多\n"
+            "- 標點不一致\n\n"
+            "請整理成乾淨的逐字稿。規則：\n"
+            "1. 移除明顯重複的句子\n"
+            "2. 適度刪掉過多的語助詞，但保留語氣\n"
+            "3. 加上標點符號讓段落清楚\n"
+            "4. 不要改變原意，不要編造\n"
+            "5. 直接輸出整理結果，不加任何前綴"
+        ),
+        input=raw,
+        temperature=0.2,
+    )
+    return response.output_text</code></pre>
+
+<p>這多花一次 API call（用便宜的 <code>gpt-4o-mini</code> 就夠），但結果好讀很多。</p>
+
+<h2>完整的長音檔轉錄器</h2>
+
+<p>把所有零件組起來：</p>
+
+<pre><code># transcribe_long.py
+import argparse
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+from dotenv import load_dotenv
+from openai import OpenAI
+
+load_dotenv()
+client = OpenAI()
+
+def prepare_audio(input_path: Path) -&gt; Path:
+    output_path = input_path.with_name(f"{input_path.stem}_16k.wav")
+    if output_path.exists():
+        return output_path
+    print(f"轉檔成 16kHz mono WAV...", file=sys.stderr)
+    subprocess.run(
+        ["ffmpeg", "-y", "-i", str(input_path),
+         "-ac", "1", "-ar", "16000", "-vn",
+         "-f", "wav", "-acodec", "pcm_s16le",
+         str(output_path)],
+        check=True, capture_output=True,
+    )
+    return output_path
+
+def split_audio(input_path: Path, work_dir: Path, segment_seconds: int = 600) -&gt; list[Path]:
+    work_dir.mkdir(parents=True, exist_ok=True)
+    pattern = work_dir / "seg_%03d.wav"
+    subprocess.run(
+        ["ffmpeg", "-y", "-i", str(input_path),
+         "-f", "segment", "-segment_time", str(segment_seconds),
+         "-reset_timestamps", "1", "-c", "copy",
+         str(pattern)],
+        check=True, capture_output=True,
+    )
+    return sorted(work_dir.glob("seg_*.wav"))
+
+def transcribe_segment(audio_path: Path, model: str) -&gt; str:
+    for attempt in range(1, 4):
+        try:
+            with open(audio_path, "rb") as f:
+                result = client.audio.transcriptions.create(
+                    model=model, file=f, language="zh",
+                )
+            return result.text
+        except Exception as e:
+            if attempt == 3:
+                raise
+            print(f"  失敗：{e}，{2**attempt} 秒後重試...", file=sys.stderr)
+            time.sleep(2 ** attempt)
+    return ""
+
+def main():
+    parser = argparse.ArgumentParser(description="長音檔分段轉錄")
+    parser.add_argument("input", help="音檔路徑")
+    parser.add_argument("-o", "--output", help="逐字稿輸出路徑")
+    parser.add_argument("-s", "--segment-seconds", type=int, default=600)
+    parser.add_argument("-m", "--model", default="gpt-4o-transcribe")
+    args = parser.parse_args()
+
+    input_path = Path(args.input)
+    work_dir = input_path.with_suffix(".work")
+    cache_dir = work_dir / "cache"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    output_path = Path(args.output) if args.output else input_path.with_suffix(".txt")
+
+    prepared = prepare_audio(input_path)
+    segments = split_audio(prepared, work_dir, args.segment_seconds)
+    print(f"切成 {len(segments)} 段", file=sys.stderr)
+
+    texts = []
+    for i, seg in enumerate(segments, start=1):
+        cache_file = cache_dir / f"{seg.stem}.txt"
+        if cache_file.exists():
+            texts.append(cache_file.read_text(encoding="utf-8"))
+            print(f"[{i}/{len(segments)}] 跳過（已快取）", file=sys.stderr)
+            continue
+        print(f"[{i}/{len(segments)}] 轉錄 {seg.name}...", file=sys.stderr)
+        text = transcribe_segment(seg, args.model)
+        cache_file.write_text(text, encoding="utf-8")
+        texts.append(text)
+
+    merged = "\n\n".join(t.strip() for t in texts if t.strip())
+    output_path.write_text(merged, encoding="utf-8")
+    print(f"逐字稿已輸出到 {output_path}（總長 {len(merged)} 字）")
+
+if __name__ == "__main__":
+    main()</code></pre>
+
+<p>用法：</p>
+
+<pre><code>python transcribe_long.py meeting.mp3
+python transcribe_long.py meeting.mp3 -s 300   # 改成每段 5 分鐘
+python transcribe_long.py meeting.mp3 -m whisper-1</code></pre>
+
+<h2>小結</h2>
+
+<ol>
+  <li><strong>長音檔不能直接丟 API</strong>——25MB 是硬限制</li>
+  <li><strong>流程</strong>：轉成 WAV → 切段 → 逐段轉錄 → 合併</li>
+  <li><strong>切段大小 5 到 10 分鐘</strong>最實用</li>
+  <li><strong>重試 + 指數退避</strong>處理偶發的 API 失敗</li>
+  <li><strong>快取每段結果</strong>——失敗時不用全部重跑</li>
+  <li><strong>合併可以用模型清理</strong>——處理接點重複與語助詞</li>
+</ol>
+
+<p>下一章我們把這個命令列工具加上 GUI，讓不會用終端機的人也能用。</p>
+
+<h2>練習</h2>
+
+<ol>
+  <li>找一個你手邊的長音檔（30 分鐘以上），用本章的程式跑完整個流程。</li>
+  <li>故意把網路斷掉跑一半，然後重連、再跑，確認快取機制有作用、之前完成的段不會重跑。</li>
+  <li>比較 <code>gpt-4o-transcribe</code> 跟 <code>whisper-1</code> 在同一個長音檔上的辨識品質與成本。</li>
+  <li>加上「合併清理」步驟（用 <code>gpt-4o-mini</code> 清理重複與語助詞），比較前後差異。</li>
+</ol>
+<div class="chapter-nav">
+  <a class="nav-prev" href="#ch10">← 上一章：音訊格式與 ffmpeg 基礎</a>
+  <a class="nav-top" href="#top">↑ 回目錄</a>
+  <a class="nav-next" href="#ch12">下一章：Streamlit GUI →</a>
+</div>
+</section>
+
+<section id="ch12" class="chapter">
+<p class="chapter-label">Chapter 12</p>
+<h1>Streamlit GUI</h1>
+
+<p>到上一章為止，我們的工具都是命令列程式。對工程師很方便，但<strong>給不會用終端機的同事或家人，沒人會用</strong>。</p>
+
+<p>這章我們把上一章的長音檔轉錄器加上一個圖形介面：可以拖曳上傳、按按鈕、看進度條、下載結果。用的工具叫 <strong>Streamlit</strong>——學完這章你會發現「做出 GUI」竟然這麼簡單。</p>
+
+<h2>為什麼選 Streamlit</h2>
+
+<p>Python 圈做 GUI 的選擇多到嚇人：Tkinter、PyQt、wxPython、Kivy、Flask、Django、FastAPI + 前端...</p>
+
+<p><strong>Streamlit</strong> 在 2019 年出現，專門為「資料科學家跟 AI 工程師」設計，理念是：</p>
+
+<blockquote>你只寫 Python，不寫 HTML、CSS、JavaScript。每個 Python 變數的變化會自動反映在介面上。</blockquote>
+
+<p>聽起來像魔法，但實際就是這樣。</p>
+
+<div class="callout tip">
+  <span class="label">Tip</span>
+  Streamlit 在 2020-2022 年爆紅，因為它剛好趕上 AI 工具的浪潮——每個會用 Python 跑模型的人，都需要一個快速做 demo 的方式。2022 年 Snowflake（雲端資料平台）以 8 億美金併購 Streamlit，但工具本身依然開源免費。<strong>對「我寫一個 Python 腳本，希望給沒寫過程式的人用」這個情境，沒有比 Streamlit 更省事的工具</strong>。如果你的需求是「正式產品的網頁」「複雜互動」「多人協作」，那 Streamlit 不夠——這時改用 React + FastAPI 比較對。但本課的工具規模 Streamlit 完美。
+</div>
+
+<h2>安裝 Streamlit</h2>
+
+<pre><code>pip install streamlit</code></pre>
+
+<p>跑一個內建範例確認裝好了：</p>
+
+<pre><code>streamlit hello</code></pre>
+
+<p>瀏覽器會自動開啟一個本機網頁。看到 Streamlit 的歡迎頁就代表 OK。要關掉的話在終端機按 <code>Ctrl + C</code>。</p>
+
+<h2>第一個 Streamlit 程式</h2>
+
+<p>建立檔案 <code>app.py</code>：</p>
+
+<pre><code>import streamlit as st
+
+st.title("我的第一個 Streamlit 程式")
+st.write("這是一段 Markdown 內容")
+
+name = st.text_input("你叫什麼名字？")
+if name:
+    st.write(f"哈囉，{name}！")</code></pre>
+
+<p>執行：</p>
+
+<pre><code>streamlit run app.py</code></pre>
+
+<p>瀏覽器會打開一個頁面，有標題、文字、輸入框。在輸入框打字後，下面會即時顯示「哈囉，xxx」。</p>
+
+<p>你可能會問：「我哪一行寫了「監聽輸入變化」？哪一行寫了「重新渲染畫面」？」</p>
+
+<p>答案是：<strong>沒有</strong>。Streamlit 的核心魔法是：<strong>每次你在介面上做任何互動，整個腳本會從頭跑一次</strong>。<code>text_input</code> 第一次跑時 <code>name</code> 是空字串，所以下面的 <code>if name</code> 不成立。你打字之後腳本再跑一次，<code>name</code> 有值，所以顯示「哈囉」。</p>
+
+<p>這個「每次重跑」的模型超級反直覺，但反而讓你<strong>完全用 Python 思考</strong>——沒有「事件處理」「狀態同步」這些前端工程師的痛點。</p>
+
+<h2>重做轉錄工具的 GUI</h2>
+
+<p>上一章的 <code>transcribe_long.py</code> 是命令列版本。我們把同樣的能力包成 GUI：</p>
+
+<pre><code># app.py
+import streamlit as st
+from pathlib import Path
+from dotenv import load_dotenv
+from openai import OpenAI
+
+load_dotenv()
+
+st.set_page_config(page_title="會議逐字稿工具", page_icon=None)
+st.title("會議逐字稿工具")
+
+uploaded = st.file_uploader(
+    "上傳音檔",
+    type=["mp3", "mp4", "m4a", "wav", "webm", "ogg", "flac"],
+)
+
+model = st.selectbox(
+    "選擇轉錄模型",
+    ["gpt-4o-transcribe", "gpt-4o-mini-transcribe", "whisper-1"],
+    index=0,
+)
+
+language = st.selectbox("語言", ["zh", "en", "ja"], index=0)
+
+if uploaded and st.button("開始轉錄"):
+    temp_path = Path("uploads") / uploaded.name
+    temp_path.parent.mkdir(exist_ok=True)
+    with open(temp_path, "wb") as f:
+        f.write(uploaded.getbuffer())
+
+    with st.spinner("轉錄中..."):
+        client = OpenAI()
+        with open(temp_path, "rb") as f:
+            result = client.audio.transcriptions.create(
+                model=model,
+                file=f,
+                language=language,
+            )
+
+    st.success("完成")
+    st.text_area("逐字稿", result.text, height=400)
+    st.download_button(
+        "下載 .txt",
+        data=result.text,
+        file_name=f"{temp_path.stem}.txt",
+        mime="text/plain",
+    )</code></pre>
+
+<p>跑：</p>
+
+<pre><code>streamlit run app.py</code></pre>
+
+<p>打開瀏覽器，你會看到：</p>
+
+<ul>
+  <li>標題</li>
+  <li>上傳音檔的拖曳區</li>
+  <li>模型下拉選單</li>
+  <li>語言下拉選單</li>
+  <li>「開始轉錄」按鈕</li>
+  <li>轉錄中的旋轉指示</li>
+  <li>結果文字框</li>
+  <li>下載按鈕</li>
+</ul>
+
+<p><strong>這就是一個完整的 GUI 工具了</strong>，不到 50 行 Python。</p>
+
+<h2>Streamlit 常用元件</h2>
+
+<p>幾個你會反覆用到的：</p>
+
+<pre><code>st.title("大標題")
+st.header("中標題")
+st.subheader("小標題")
+st.write("一般文字，支援 Markdown")
+st.markdown("**粗體** *斜體* `程式碼`")
+st.code("print('hello')", language="python")
+
+# 輸入元件
+name = st.text_input("文字")
+age = st.number_input("數字", min_value=0, max_value=120)
+agreed = st.checkbox("同意條款")
+mood = st.radio("心情", ["好", "普通", "差"])
+country = st.selectbox("國家", ["TW", "JP", "US"])
+tags = st.multiselect("標籤", ["重要", "急", "一般"])
+date = st.date_input("日期")
+file = st.file_uploader("檔案")
+
+# 動作
+if st.button("執行"):
+    ...
+
+# 顯示
+st.success("成功")
+st.warning("警告")
+st.error("錯誤")
+st.info("資訊")
+st.spinner("處理中...")  # 配合 with 使用
+
+# 排版
+col1, col2 = st.columns(2)
+with col1:
+    st.write("左邊")
+with col2:
+    st.write("右邊")</code></pre>
+
+<p>這幾個就能組合出 90% 的工具介面。</p>
+
+<h2>進度顯示</h2>
+
+<p>長任務（轉錄、批次處理）需要進度提示。三種常見做法：</p>
+
+<p><strong>1. <code>st.spinner</code></strong>——簡單的旋轉指示：</p>
+
+<pre><code>with st.spinner("處理中..."):
+    do_long_task()</code></pre>
+
+<p><strong>2. <code>st.progress</code></strong>——進度條：</p>
+
+<pre><code>progress = st.progress(0)
+for i, item in enumerate(items):
+    process(item)
+    progress.progress((i + 1) / len(items))</code></pre>
+
+<p><strong>3. <code>st.status</code></strong>——可展開的狀態框：</p>
+
+<pre><code>with st.status("分段轉錄中...", expanded=True) as status:
+    for i, seg in enumerate(segments, 1):
+        st.write(f"段 {i}/{len(segments)}：{seg.name}")
+        transcribe(seg)
+    status.update(label="完成", state="complete")</code></pre>
+
+<p>對本課的長音檔轉錄工具來說，<code>st.status</code> 最適合——可以看到每段進度，又可以折疊起來。</p>
+
+<div class="callout note">
+  <span class="label">Note</span>
+  進度顯示在 GUI 工具裡幾乎是必備的。沒有進度的話，使用者按下按鈕後盯著畫面，30 秒後可能就以為當機了。<strong>對任何超過 5 秒的操作，都要顯示進度</strong>。這是 UX 的基本禮貌。
+</div>
+
+<h2>API key 怎麼處理</h2>
+
+<p>GUI 版本有個新問題：<strong>API key 從哪來？</strong></p>
+
+<p>幾種選擇：</p>
+
+<p><strong>A. 從 <code>.env</code> 讀（單人使用）</strong></p>
+
+<pre><code>load_dotenv()
+client = OpenAI()</code></pre>
+
+<p>優點：簡單。缺點：給別人用的時候別人得自己改 <code>.env</code>。</p>
+
+<p><strong>B. 用 Streamlit secrets（部署用）</strong></p>
+
+<p>建立 <code>.streamlit/secrets.toml</code>：</p>
+
+<pre><code>OPENAI_API_KEY = "sk-..."</code></pre>
+
+<p>讀法：</p>
+
+<pre><code>import streamlit as st
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])</code></pre>
+
+<p>優點：部署到 Streamlit Cloud 時內建支援。缺點：本機開發要另設。</p>
+
+<p><strong>C. 讓使用者自己貼 key（最彈性）</strong></p>
+
+<pre><code>api_key = st.text_input("OpenAI API Key", type="password")
+if api_key:
+    client = OpenAI(api_key=api_key)</code></pre>
+
+<p><code>type="password"</code> 會把輸入隱藏成 <code>••••••</code>。<strong>這是給別人用、又不想付他們 API 費用的最佳方案</strong>。</p>
+
+<div class="callout warning">
+  <span class="label">Warning</span>
+  如果你做的 GUI 工具會給別人用、又用方案 B 把你的 key 寫在 <code>secrets.toml</code>，<strong>別人會用你的 key 花你的錢</strong>。不是技術問題，是商業判斷——你願不願意贊助使用者的用量。本課的工具偏向「給每個人自己用」，所以推薦方案 A（個人）或 C（給朋友）。
+</div>
+
+<h2>把它全部整合</h2>
+
+<p>完整的 GUI 版會議逐字稿工具：</p>
+
+<pre><code># app.py
+import streamlit as st
+from pathlib import Path
+from openai import OpenAI
+
+st.set_page_config(page_title="會議逐字稿工具", layout="centered")
+st.title("會議逐字稿工具")
+
+with st.sidebar:
+    st.header("設定")
+    api_key = st.text_input("OpenAI API Key", type="password")
+    model = st.selectbox(
+        "轉錄模型",
+        ["gpt-4o-transcribe", "gpt-4o-mini-transcribe", "whisper-1"],
+    )
+    language = st.selectbox("語言", ["zh", "en", "ja"], index=0)
+
+uploaded = st.file_uploader(
+    "上傳音檔（mp3 / mp4 / wav / m4a 等）",
+    type=["mp3", "mp4", "m4a", "wav", "webm", "ogg", "flac"],
+)
+
+if uploaded and api_key and st.button("開始轉錄"):
+    upload_dir = Path("uploads")
+    upload_dir.mkdir(exist_ok=True)
+    temp_path = upload_dir / uploaded.name
+    temp_path.write_bytes(uploaded.getbuffer())
+
+    size_mb = temp_path.stat().st_size / (1024 * 1024)
+    st.info(f"檔案大小：{size_mb:.1f} MB")
+
+    if size_mb &gt; 25:
+        st.error("檔案超過 25 MB，請改用命令列工具的分段轉錄（Chapter 11）")
+        st.stop()
+
+    with st.spinner("轉錄中，請耐心等候..."):
+        client = OpenAI(api_key=api_key)
+        with open(temp_path, "rb") as f:
+            result = client.audio.transcriptions.create(
+                model=model, file=f, language=language,
+            )
+
+    st.success("轉錄完成")
+    st.text_area("逐字稿", result.text, height=400)
+    st.download_button(
+        "下載 .txt",
+        data=result.text,
+        file_name=f"{temp_path.stem}.txt",
+        mime="text/plain",
+    )
+elif not api_key:
+    st.info("請在側邊欄輸入 API Key")</code></pre>
+
+<p>這個版本：</p>
+
+<ul>
+  <li>API key 從側邊欄輸入，隱藏顯示</li>
+  <li>模型、語言可選</li>
+  <li>顯示檔案大小，超過 25MB 提醒去用命令列分段版</li>
+  <li>旋轉指示顯示處理中</li>
+  <li>完成後顯示逐字稿，提供下載</li>
+</ul>
+
+<p>跑：</p>
+
+<pre><code>streamlit run app.py</code></pre>
+
+<p>打開瀏覽器，你會看到一個功能完整的工具。可以分享給同事、家人、自己用。</p>
+
+<h2>小結</h2>
+
+<ol>
+  <li><strong>Streamlit 是 Python 寫 GUI 最快的工具</strong>——10 分鐘做出第一個工具</li>
+  <li><strong>核心模型</strong>：每次互動，整個腳本從頭跑一次。反直覺但簡單</li>
+  <li><strong>常用元件</strong>：<code>text_input</code>, <code>selectbox</code>, <code>file_uploader</code>, <code>button</code>, <code>spinner</code>, <code>status</code>, <code>download_button</code></li>
+  <li><strong>進度顯示是必備</strong>——超過 5 秒的操作都要有</li>
+  <li><strong>API key 三種處理方式</strong>——依「給誰用、誰付費」決定</li>
+</ol>
+
+<p>下一章我們學「結構化輸出」——讓模型輸出固定格式的 JSON，下下章把這個 GUI 升級成「轉錄 + 摘要 + Action Items」的完整會議紀錄工具。</p>
+
+<h2>練習</h2>
+
+<ol>
+  <li>把這個 GUI 跑起來，用一個短音檔測試完整流程。</li>
+  <li>加一個「temperature」滑桿（<code>st.slider("Temperature", 0.0, 1.0, 0.3)</code>），讓使用者調整。</li>
+  <li>改成「批次模式」：可以一次上傳多個檔案，依序處理。</li>
+  <li>加上「最近處理過的檔案」歷史記錄（提示：把結果存到 session state <code>st.session_state.history = []</code>）。</li>
+</ol>
+<div class="chapter-nav">
+  <a class="nav-prev" href="#ch11">← 上一章：長音檔切段與轉錄</a>
+  <a class="nav-top" href="#top">↑ 回目錄</a>
+  <a class="nav-next" href="#ch13">下一章：Structured Output →</a>
+</div>
+</section>
+
+<section id="ch13" class="chapter">
+<p class="chapter-label">Chapter 13</p>
+<h1>Structured Output</h1>
+
+<p>到目前為止，模型回給我們的都是「人類看得懂的文字」。但實務上很多時候我們希望模型回的是「<strong>程式能直接讀的資料</strong>」——例如把一份會議紀錄拆成「標題、摘要、行動項」三個欄位，後續可以塞進資料庫或寄成 email。</p>
+
+<p>這章我們學怎麼讓模型可靠地輸出 JSON。</p>
+
+<h2>為什麼不只是「請輸出 JSON」</h2>
+
+<p>最直觀的做法是用 prompt 喊話：</p>
+
+<pre><code>response = client.responses.create(
+    model="gpt-4o",
+    instructions="請以下面 JSON 格式回應：{\"title\": \"...\", \"summary\": \"...\"}",
+    input=meeting_text,
+)
+data = json.loads(response.output_text)</code></pre>
+
+<p><strong>這在 95% 的情況會成功</strong>。但剩下 5%，你會踩到下面這些坑：</p>
+
+<ol>
+  <li>模型在 JSON 前面加「以下是分析結果：」</li>
+  <li>模型在 JSON 用單引號而不是雙引號</li>
+  <li>模型多了一個 trailing comma</li>
+  <li>模型把 JSON 包在 markdown 程式碼塊 <code>```json ... ```</code> 裡</li>
+  <li>模型直接返回類似但不完全的格式</li>
+</ol>
+
+<p>對寫 prototype 來說 5% 失敗率還可接受。但對「跑在生產的工具」來說，95% 不夠——你得寫一堆 try/except、清洗邏輯，最後還是會在最重要的場合炸給你看。</p>
+
+<div class="callout tip">
+  <span class="label">Tip</span>
+  Prompt-only 的 JSON 輸出在 2023-2024 年是常態的痛點。OpenAI 推出 JSON mode 跟後來的 Structured Outputs，就是為了根本解決這個問題——讓模型在生成階段就被「強制」遵守格式，不是「請它配合」。這跟把字串檢查改成型別檢查是同一類飛躍：從「希望對方做對」變成「規則上不可能做錯」。
+</div>
+
+<h2>OpenAI 的解法：Structured Outputs</h2>
+
+<p>OpenAI 在 2024 年推出 Structured Outputs：<strong>你定義一個 schema，OpenAI 保證模型輸出符合這個 schema</strong>。</p>
+
+<p>最簡單的用法：</p>
+
+<pre><code>from pydantic import BaseModel
+from openai import OpenAI
+
+client = OpenAI()
+
+class MeetingNote(BaseModel):
+    title: str
+    summary: str
+    action_items: list[str]
+
+response = client.responses.parse(
+    model="gpt-4o",
+    instructions="把下面這份會議紀錄整理成結構化資料。",
+    input=meeting_text,
+    response_format=MeetingNote,
+)
+
+note = response.output_parsed
+print(note.title)
+print(note.summary)
+for item in note.action_items:
+    print(f"- {item}")</code></pre>
+
+<p>幾個重點：</p>
+
+<ul>
+  <li><strong><code>pydantic.BaseModel</code></strong> 是定義 schema 的方式（pydantic 是 OpenAI SDK 的相依套件，自動會裝）</li>
+  <li><strong><code>client.responses.parse(...)</code></strong>（不是 <code>create</code>）會自動解析回傳成 Pydantic 物件</li>
+  <li><strong><code>response_format=MeetingNote</code></strong> 告訴模型「要符合這個型別」</li>
+  <li><strong><code>response.output_parsed</code></strong> 直接拿到型別化的 Python 物件</li>
+</ul>
+
+<p><strong>不需要 <code>json.loads()</code></strong>、<strong>不需要清洗</strong>、<strong>不需要 try/except 處理格式</strong>——格式由 OpenAI 端強制保證。</p>
+
+<h2>一個完整範例：會議紀錄結構化</h2>
+
+<pre><code>from pydantic import BaseModel
+from dotenv import load_dotenv
+from openai import OpenAI
+
+load_dotenv()
+client = OpenAI()
+
+class ActionItem(BaseModel):
+    owner: str
+    task: str
+    due_date: str  # 用字串，因為 ISO date
+
+class MeetingNote(BaseModel):
+    title: str
+    date: str
+    attendees: list[str]
+    summary: str
+    key_decisions: list[str]
+    action_items: list[ActionItem]
+
+INSTRUCTIONS = """
+你會收到一份會議逐字稿。請整理成結構化的會議紀錄。
+
+規則：
+1. 標題要簡短、能反映會議主題
+2. 摘要 100 字內，講清楚會議目的與結論
+3. Key decisions 列出明確的決議（不是討論的事項）
+4. Action items 每一條要有負責人、任務、期限
+5. 不要編造資訊；如果某個欄位逐字稿沒提到，留空字串或空 list
+""".strip()
+
+def structure_meeting(transcript: str) -&gt; MeetingNote:
+    response = client.responses.parse(
+        model="gpt-4o",
+        instructions=INSTRUCTIONS,
+        input=transcript,
+        response_format=MeetingNote,
+    )
+    return response.output_parsed</code></pre>
+
+<p>呼叫：</p>
+
+<pre><code>note = structure_meeting(transcript)
+print(f"主題：{note.title}")
+print(f"日期：{note.date}")
+print(f"摘要：{note.summary}")
+print(f"\n決議：")
+for d in note.key_decisions:
+    print(f"  - {d}")
+print(f"\n行動項：")
+for item in note.action_items:
+    print(f"  - {item.owner}：{item.task}（{item.due_date}）")</code></pre>
+
+<p>這個 <code>note</code> 物件可以直接：</p>
+
+<ul>
+  <li>存進資料庫</li>
+  <li>轉成 JSON 寫進檔案：<code>note.model_dump_json(indent=2)</code></li>
+  <li>轉成 Python dict：<code>note.model_dump()</code></li>
+  <li>跟其他系統交換</li>
+</ul>
+
+<h2>Schema 設計的原則</h2>
+
+<p>實務上設計 schema 有幾個原則會讓品質好很多：</p>
+
+<p><strong>1. 欄位名要對模型友善</strong>——用英文 snake_case 比中文好（模型訓練時看到的英文 schema 例子多）。但欄位的「描述」可以用中文。</p>
+
+<p><strong>2. 巢狀不要太深</strong>——超過三層巢狀模型品質會掉。如果你有 5 層巢狀，可能該重新設計 schema。</p>
+
+<p><strong>3. 給 description</strong>——pydantic 支援 Field 加描述：</p>
+
+<pre><code>from pydantic import BaseModel, Field
+
+class MeetingNote(BaseModel):
+    title: str = Field(description="會議主題，10 字內")
+    summary: str = Field(description="摘要，100 字內")
+    action_items: list[ActionItem] = Field(description="行動項清單")</code></pre>
+
+<p>description 會被傳給模型，幫它理解每個欄位該放什麼。</p>
+
+<p><strong>4. 用 Enum 限制選項</strong>——如果某個欄位只能是固定幾個值：</p>
+
+<pre><code>from enum import Enum
+
+class Priority(str, Enum):
+    high = "高"
+    medium = "中"
+    low = "低"
+
+class ActionItem(BaseModel):
+    task: str
+    priority: Priority</code></pre>
+
+<p>這樣模型不會回「緊急」「重要」這種模型自己發明的值，只會在 <code>高/中/低</code> 三選一。</p>
+
+<div class="callout note">
+  <span class="label">Note</span>
+  用 Enum 限制選項對「之後要寫 if 判斷」「之後要做統計」的場景超級重要。如果你不限制，模型今天回「高」、明天回「重要」、後天回「High」，你的程式只能 if 一堆 case，最後還是會漏。<strong>Enum 一勞永逸</strong>。
+</div>
+
+<h2>處理「資料不存在」的欄位</h2>
+
+<p>有時候輸入沒提到某個欄位，硬要模型編一個會出問題。比較好的做法：</p>
+
+<p><strong>1. 用 Optional</strong>——允許欄位是 <code>None</code>：</p>
+
+<pre><code>from typing import Optional
+
+class ActionItem(BaseModel):
+    owner: str
+    task: str
+    due_date: Optional[str] = None  # 沒寫期限就是 None</code></pre>
+
+<p><strong>2. 用 list 不用 Optional list</strong>——空 list 比 None 好處理：</p>
+
+<pre><code>class MeetingNote(BaseModel):
+    action_items: list[ActionItem]  # 沒有行動項時是 []，不是 None</code></pre>
+
+<p><strong>3. 在 instructions 明確說</strong>：</p>
+
+<blockquote>規則：如果某個欄位逐字稿沒提到，留空字串或空 list，<strong>不要編造</strong>。</blockquote>
+
+<h2>不只是 JSON：實務上的用途</h2>
+
+<p>Structured Outputs 不只用在會議紀錄。常見場景：</p>
+
+<p><strong>1. 客戶回饋分類</strong></p>
+
+<pre><code>class Feedback(BaseModel):
+    sentiment: Literal["positive", "negative", "neutral"]
+    category: Literal["bug", "feature", "praise", "question"]
+    severity: Literal["low", "medium", "high"]
+    summary: str</code></pre>
+
+<p><strong>2. 履歷解析</strong></p>
+
+<pre><code>class Experience(BaseModel):
+    company: str
+    title: str
+    start_year: int
+    end_year: int | None
+    description: str
+
+class Resume(BaseModel):
+    name: str
+    email: str
+    experiences: list[Experience]</code></pre>
+
+<p><strong>3. 從文章抽出實體</strong></p>
+
+<pre><code>class Entity(BaseModel):
+    name: str
+    type: Literal["person", "company", "location", "date"]
+    context: str
+
+class Extraction(BaseModel):
+    entities: list[Entity]</code></pre>
+
+<p>幾乎所有「把模糊文字變成結構化資料」的需求，都可以用 Structured Outputs 做。</p>
+
+<h2>限制與成本</h2>
+
+<ul>
+  <li><strong>不是所有模型支援</strong>——<code>gpt-4o</code>、<code>gpt-4o-mini</code>、<code>o1</code> 支援；舊版 <code>gpt-3.5-turbo</code> 不支援</li>
+  <li><strong>第一次呼叫某個 schema 會多花 0.5-1 秒</strong>——OpenAI 後端要先「編譯」schema，但同 schema 後續呼叫不會多花時間</li>
+  <li><strong>複雜 schema 會增加 token 用量</strong>——schema 本身會被當輸入算 token</li>
+</ul>
+
+<div class="callout warning">
+  <span class="label">Warning</span>
+  Structured Outputs <strong>不會驗證內容</strong>。它保證「格式對」，但不保證「內容正確」。模型仍可能回給你一個 schema 完全正確、但內容是錯的（編造的）行動項。<strong>結構驗證跟事實驗證是兩回事</strong>——後者要靠 prompt 規則跟人類審核。
+</div>
+
+<h2>小結</h2>
+
+<ol>
+  <li><strong><code>response_format=YourModel</code></strong> 強制模型輸出符合 schema 的 JSON</li>
+  <li><strong>用 Pydantic 定義 schema</strong>，欄位描述用 <code>Field(description=...)</code></li>
+  <li><strong>Enum 限制選項</strong>，避免模型發明新值</li>
+  <li><strong>不要編造</strong>——明確指示「沒提到就留空」</li>
+  <li><strong>用 <code>client.responses.parse(...)</code></strong> 而不是 <code>create()</code>，並用 <code>output_parsed</code> 拿型別化結果</li>
+  <li><strong>保證格式對，不保證內容對</strong>——事實正確性仍需人工核對</li>
+</ol>
+
+<p>下一章我們學 streaming——讓使用者邊看模型生成、不要等到全部跑完。</p>
+
+<h2>練習</h2>
+
+<ol>
+  <li>設計一個 schema：把客戶評論分成「情緒、問題類型、嚴重度、摘要」四個欄位，用 Structured Outputs 抽出。</li>
+  <li>修改本章的 <code>MeetingNote</code> schema，加上「會議時長（分鐘）」與「下次會議日期」兩個欄位。</li>
+  <li>故意給模型一份不是會議紀錄的文字（例如新聞文章），看看它怎麼處理空欄位。</li>
+  <li>用 <code>note.model_dump_json(indent=2)</code> 把結果寫進檔案，比較看看 JSON 結構。</li>
+</ol>
+<div class="chapter-nav">
+  <a class="nav-prev" href="#ch12">← 上一章：Streamlit GUI</a>
+  <a class="nav-top" href="#top">↑ 回目錄</a>
+  <a class="nav-next" href="#ch14">下一章：Streaming →</a>
+</div>
+</section>
+
+<section id="ch14" class="chapter">
+<p class="chapter-label">Chapter 14</p>
+<h1>Streaming</h1>
+
+<p>當你用 ChatGPT，會發現它回答時是「邊想邊打字」——一個字一個字浮現，而不是等整段都生成完才一次顯示。這種「邊產生邊呈現」的體驗叫做 <strong>streaming</strong>。</p>
+
+<p>不只 ChatGPT，OpenAI API 也支援 streaming。這章我們學怎麼用它，以及為什麼它對使用者體驗這麼重要。</p>
+
+<h2>為什麼 Streaming 重要</h2>
+
+<p>想像兩個情境：</p>
+
+<p><strong>情境 A（無 streaming）</strong>：使用者按下「產生摘要」按鈕。畫面什麼都沒動。10 秒過去，使用者開始懷疑是不是當機。15 秒，使用者想關掉視窗。20 秒，整段摘要突然全部跳出來。</p>
+
+<p><strong>情境 B（有 streaming）</strong>：使用者按下按鈕。一秒內，第一行文字開始出現。文字持續流動。20 秒後整段完成。</p>
+
+<p><strong>兩個情境總共花的時間一樣</strong>。但情境 A 讓使用者覺得「等了好久、不確定有沒有壞掉」，情境 B 讓使用者覺得「系統在工作、很快、很自然」。</p>
+
+<p>這個感受差異有幾個心理學名詞：<strong>感知速度（perceived speed）</strong>、<strong>等待焦慮（waiting anxiety）</strong>。對任何超過 3 秒的操作，streaming 都會讓體驗好得多。</p>
+
+<div class="callout tip">
+  <span class="label">Tip</span>
+  ChatGPT 在 2022 年 11 月發布時，<strong>「打字機效應」是它最讓人印象深刻的設計之一</strong>。連 Sam Altman 都在訪談裡提過：streaming 介面讓使用者覺得 AI「在思考」，而不是「在計算」——前者親近，後者冰冷。技術上 streaming 並沒讓模型跑更快，但用戶體驗的差距是天差地遠。這也是為什麼後來所有 LLM 產品（Claude、Gemini、Copilot）都跟著做了 streaming UI。
+</div>
+
+<h2>技術原理：Server-Sent Events</h2>
+
+<p>Streaming 在 HTTP 層用的是 <strong>Server-Sent Events (SSE)</strong> 協定：</p>
+
+<ul>
+  <li>一般 HTTP request：client 送請求，server 一次回完，連線結束</li>
+  <li>SSE：client 送請求，server 維持連線開著，<strong>分批</strong>送資料，最後才關閉</li>
+</ul>
+
+<p>對 OpenAI API 來說：模型一邊產生 token，一邊就把已產生的部分送出去。client 收到一段就顯示一段。</p>
+
+<div class="callout note">
+  <span class="label">Note</span>
+  SSE 是 HTML5 的標準，跟 WebSocket 不一樣——SSE 是單向的（server → client），WebSocket 是雙向的。SSE 簡單很多，剛好夠用在「server 推進度給 client」這個場景。OpenAI 在 streaming endpoint 一律用 SSE。
+</div>
+
+<h2>在 Python 用 Streaming</h2>
+
+<p>把 Chapter 6 的範例改成 streaming 版本：</p>
+
+<pre><code>from dotenv import load_dotenv
+from openai import OpenAI
+
+load_dotenv()
+client = OpenAI()
+
+stream = client.responses.create(
+    model="gpt-4o",
+    input="請用 300 字介紹 OpenAI API 的用途。",
+    stream=True,
+)
+
+for event in stream:
+    if event.type == "response.output_text.delta":
+        print(event.delta, end="", flush=True)
+print()  # 結束時加個換行</code></pre>
+
+<p>跑這段程式，你會看到文字在終端機<strong>逐字顯示</strong>——跟 ChatGPT 介面一樣。</p>
+
+<p>幾個重點：</p>
+
+<ul>
+  <li><strong><code>stream=True</code></strong>：開啟 streaming 模式</li>
+  <li><strong>回傳是個 generator</strong>（迭代器），不是一次回完的物件</li>
+  <li><strong><code>event.type == "response.output_text.delta"</code></strong>：每來一段文字會觸發這個事件</li>
+  <li><strong><code>event.delta</code></strong>：這次新增的那一段文字</li>
+  <li><strong><code>flush=True</code></strong>：強制 Python 立刻把東西印出來，不要 buffer</li>
+</ul>
+
+<p><code>flush=True</code> 很關鍵——Python 預設會把 print 的內容 buffer 起來，等到一定量才寫到螢幕。對 streaming 來說這會破壞效果。</p>
+
+<div class="callout warning">
+  <span class="label">Warning</span>
+  忘記 <code>flush=True</code> 是 streaming 新手最常踩的坑。表面上看起來「不會動，等很久突然全部跑出來」——還以為 streaming 沒生效，其實是被 buffer 卡住了。<strong>任何 streaming 的 print 都要加 <code>flush=True</code></strong>。
+</div>
+
+<h2>事件類型：不只是文字</h2>
+
+<p>Streaming 回的事件不只 <code>output_text.delta</code>。完整事件流長這樣：</p>
+
+<pre><code>response.created           # 開始
+response.output_item.added # 新增一個輸出項目
+response.output_text.delta # 文字增量（最常用）
+response.output_text.delta
+response.output_text.delta
+...
+response.output_text.done  # 文字結束
+response.completed         # 整個請求結束</code></pre>
+
+<p>對「只想顯示文字」的情境，只看 <code>.delta</code> 就好。對「想知道進度、總 token 數」的情境，看 <code>response.completed</code> 那個事件，它的 <code>event.response.usage</code> 有完整資訊。</p>
+
+<p>完整處理：</p>
+
+<pre><code>for event in stream:
+    if event.type == "response.output_text.delta":
+        print(event.delta, end="", flush=True)
+    elif event.type == "response.completed":
+        print()  # 換行
+        print(f"\n總共用 {event.response.usage.total_tokens} tokens")</code></pre>
+
+<h2>在 Streamlit 用 Streaming</h2>
+
+<p>回到上一章我們的 GUI 工具。Streamlit 有個 <code>st.write_stream()</code> 方法，<strong>完美對接 OpenAI 的 streaming</strong>：</p>
+
+<pre><code>import streamlit as st
+from openai import OpenAI
+
+client = OpenAI(api_key=st.secrets.get("OPENAI_API_KEY", ""))
+
+prompt = st.text_area("問題", height=100)
+
+if st.button("送出") and prompt:
+    def generate():
+        stream = client.responses.create(
+            model="gpt-4o",
+            input=prompt,
+            stream=True,
+        )
+        for event in stream:
+            if event.type == "response.output_text.delta":
+                yield event.delta
+
+    st.write_stream(generate())</code></pre>
+
+<p><code>st.write_stream()</code> 接受一個 generator，會把每次 <code>yield</code> 的文字即時顯示到畫面上。<strong>這就跟 ChatGPT 介面完全一樣了</strong>——幾行 Python 達成。</p>
+
+<h2>真實場景：摘要工具加上 Streaming</h2>
+
+<p>把 Chapter 8 的摘要工具改成 streaming 版：</p>
+
+<pre><code># summarize_stream.py
+import sys
+from pathlib import Path
+from dotenv import load_dotenv
+from openai import OpenAI
+
+load_dotenv()
+client = OpenAI()
+
+INSTRUCTIONS = "你是一位中文編輯，把文字整理成清楚的摘要。"
+
+def summarize_stream(text: str) -&gt; None:
+    stream = client.responses.create(
+        model="gpt-4o",
+        instructions=INSTRUCTIONS,
+        input=text,
+        stream=True,
+    )
+    for event in stream:
+        if event.type == "response.output_text.delta":
+            print(event.delta, end="", flush=True)
+    print()  # 結束換行
+
+if __name__ == "__main__":
+    text = Path(sys.argv[1]).read_text(encoding="utf-8")
+    summarize_stream(text)</code></pre>
+
+<p>對長文摘要來說，這個版本體驗好太多——使用者看到模型「邊讀邊想邊寫」，不會有「按下去等到天荒地老」的感覺。</p>
+
+<h2>Streaming 跟 Structured Output 能一起用嗎</h2>
+
+<p>可以，但稍微麻煩一點。<code>client.responses.parse(...)</code> 也支援 streaming：</p>
+
+<pre><code>with client.responses.stream(
+    model="gpt-4o",
+    instructions="...",
+    input=meeting_text,
+    response_format=MeetingNote,
+) as stream:
+    for event in stream:
+        if event.type == "content.delta":
+            # 部分 JSON
+            ...
+
+final = stream.get_final_response()
+note = final.output_parsed</code></pre>
+
+<p>對結構化輸出來說 streaming 比較少用——因為「半個 JSON」對 UI 沒意義。但有些進階場景（例如想顯示「正在生成標題...正在生成摘要...」這種分階段進度）會用到。</p>
+
+<h2>Streaming 的取捨</h2>
+
+<p><strong>優點</strong>：</p>
+
+<ul>
+  <li>使用者體感速度快很多</li>
+  <li>對長任務（300+ 字輸出）尤其有感</li>
+  <li>能在生成中途取消（按 Ctrl+C），省 token</li>
+</ul>
+
+<p><strong>缺點</strong>：</p>
+
+<ul>
+  <li>程式碼複雜度高一點</li>
+  <li>錯誤處理麻煩——可能中途失敗</li>
+  <li>不容易做「同時呼叫多個 API、整合結果」的場景</li>
+</ul>
+
+<div class="callout note">
+  <span class="label">Note</span>
+  一個務實的判斷：<strong>如果輸出短於 100 個字，不必用 streaming；超過 200 個字，streaming 強烈推薦</strong>。對「快速分類」「短摘要」這類任務，等 2 秒一次出來其實沒差；對「長篇生成」「對話回覆」，streaming 跟非 streaming 是兩種等級的體驗。
+</div>
+
+<h2>小結</h2>
+
+<ol>
+  <li><strong>Streaming 讓「等」變得不像「等」</strong>——感知速度勝過實際速度</li>
+  <li><strong><code>stream=True</code></strong> 加 <strong><code>for event in stream</code></strong> 是基本骨架</li>
+  <li><strong>看 <code>response.output_text.delta</code></strong> 拿增量文字，<strong><code>response.completed</code></strong> 拿總結資訊</li>
+  <li><strong><code>flush=True</code></strong> 必須有，否則被 buffer 吃掉</li>
+  <li><strong>Streamlit 的 <code>st.write_stream()</code></strong> 完美對接，幾行做出 ChatGPT 體驗</li>
+  <li><strong>超過 200 字輸出強烈推薦用 streaming</strong></li>
+</ol>
+
+<p>下一章我們把零散的工具整理成一個正式專案——專案結構、README、<code>.gitignore</code>，準備交付給使用者。</p>
+
+<h2>練習</h2>
+
+<ol>
+  <li>把 Chapter 8 的摘要工具改成 streaming 版本，比較兩種版本的「感覺」。</li>
+  <li>在 Streamlit GUI 上加一個「即時摘要」按鈕，用 <code>st.write_stream()</code> 顯示。</li>
+  <li>寫一個簡單的 chatbot 命令列工具：輸入一行、模型 streaming 回應、再輸入下一行。注意：本課沒講對話歷史，可以先不保留歷史，每次當作獨立問題。</li>
+  <li>故意在 streaming 中途按 Ctrl+C 中止，觀察 Python 怎麼處理（提示：用 try/except 捕捉 <code>KeyboardInterrupt</code>）。</li>
+</ol>
+<div class="chapter-nav">
+  <a class="nav-prev" href="#ch13">← 上一章：Structured Output</a>
+  <a class="nav-top" href="#top">↑ 回目錄</a>
+  <a class="nav-next" href="#ch15">下一章：專案結構與 README →</a>
+</div>
+</section>
+
+<section id="ch15" class="chapter">
+<p class="chapter-label">Chapter 15</p>
+<h1>專案結構與 README</h1>
+
+<p>到目前為止，我們的程式檔案越來越多：<code>summarize.py</code>、<code>transcribe.py</code>、<code>transcribe_long.py</code>、<code>app.py</code>...全部塞在一個資料夾。</p>
+
+<p>這章我們把它們整理成一個<strong>像樣的專案</strong>——有結構、有 README、有 <code>.gitignore</code>、別人 clone 下來看得懂、跑得起來。</p>
+
+<p>「能跑」跟「可以交付」中間，差的就是這章。</p>
+
+<h2>為什麼專案結構重要</h2>
+
+<p>想像兩個情境：</p>
+
+<p><strong>A. 一個資料夾裡塞 12 個 <code>.py</code> 檔，沒有 README、沒有 requirements.txt、沒有說明。</strong> 你三個月後回頭看，得花半小時才能搞清楚哪個檔做什麼、要怎麼跑。同事更不用說。</p>
+
+<p><strong>B. 有清楚的資料夾結構、README 寫清楚用法、<code>.gitignore</code> 保護祕密。</strong> 你三個月後一打開就懂、同事 clone 下來十分鐘就跑起來。</p>
+
+<p><strong>這個差別就是「工具」跟「玩具」的差別</strong>。</p>
+
+<div class="callout tip">
+  <span class="label">Tip</span>
+  軟體工程界有個觀察叫「<strong>讀程式比寫程式更頻繁</strong>」——你寫一段程式碼可能花 1 小時，但之後讀它（除錯、修改、解釋給別人聽）會花 10 小時。<strong>專案結構與 README 是給未來的自己跟別人寫的「使用說明」</strong>。一開始多花 30 分鐘做好，後面省下幾小時。
+</div>
+
+<h2>推薦的專案結構</h2>
+
+<p>對本課這種規模的小工具，這個結構夠用：</p>
+
+<pre><code>openai-meeting-tool/
+├── README.md
+├── requirements.txt
+├── .env.example
+├── .gitignore
+├── app.py                 # Streamlit GUI 入口
+├── transcribe.py          # 命令列轉錄工具
+├── summarize.py           # 命令列摘要工具
+├── src/
+│   ├── __init__.py
+│   ├── audio.py           # 音檔處理：轉檔、切段
+│   ├── transcriber.py     # 轉錄核心邏輯
+│   └── summarizer.py      # 摘要核心邏輯
+├── uploads/               # 使用者上傳的檔案（gitignore）
+├── transcripts/           # 輸出的逐字稿（gitignore）
+└── tests/                 # 測試（選用）
+    └── test_audio.py</code></pre>
+
+<p>幾個原則：</p>
+
+<ul>
+  <li><strong>入口檔放最外層</strong>：<code>app.py</code>、<code>transcribe.py</code> 一看就知道是執行用的</li>
+  <li><strong>核心邏輯放 <code>src/</code></strong>：可被其他檔案匯入</li>
+  <li><strong>輸入/輸出資料分開</strong>：<code>uploads/</code>（進）、<code>transcripts/</code>（出）</li>
+  <li><strong>設定檔在最外層</strong>：README、requirements、env 範例</li>
+</ul>
+
+<h2>src/ 與模組化</h2>
+
+<p>把「能單獨使用的邏輯」抽到 <code>src/</code> 模組裡。例如 <code>src/transcriber.py</code>：</p>
+
+<pre><code># src/transcriber.py
+from pathlib import Path
+from openai import OpenAI
+
+def transcribe(
+    audio_path: Path,
+    client: OpenAI,
+    model: str = "gpt-4o-transcribe",
+    language: str = "zh",
+) -&gt; str:
+    with open(audio_path, "rb") as f:
+        result = client.audio.transcriptions.create(
+            model=model,
+            file=f,
+            language=language,
+        )
+    return result.text</code></pre>
+
+<p>然後在 <code>transcribe.py</code>（命令列入口）跟 <code>app.py</code>（GUI 入口）都可以匯入這個函式：</p>
+
+<pre><code># transcribe.py
+from src.transcriber import transcribe</code></pre>
+
+<p><strong>好處：邏輯只寫一次</strong>。如果哪天 OpenAI 改了 API，你只改一個檔案，兩個工具都更新。</p>
+
+<div class="callout note">
+  <span class="label">Note</span>
+  <code>src/</code> 裡的 <code>__init__.py</code> 可以是空檔案，它的存在告訴 Python「這個資料夾是個模組」。在新版 Python（3.3+）其實沒它也能 import，但留著比較不會有意外。
+</div>
+
+<h2>README.md：給人讀的入口</h2>
+
+<p>README 是專案的門面。<strong>沒有 README 的開源專案沒人會用</strong>。最起碼要有這幾段：</p>
+
+<pre><code># 會議逐字稿工具
+
+把會議錄音變成可讀的逐字稿與會議紀錄。
+
+## 功能
+
+- 上傳 MP3 / WAV / MP4，自動轉成文字
+- 長音檔自動分段處理（支援 1 小時以上錄音）
+- 自動產生摘要與 Action Items
+- 圖形介面（Streamlit）與命令列兩種使用方式
+
+## 環境需求
+
+- Python 3.10+
+- ffmpeg（macOS: brew install ffmpeg）
+- OpenAI API key
+
+## 安裝
+
+git clone https://github.com/yourname/openai-meeting-tool.git
+cd openai-meeting-tool
+python3 -m venv .venv
+source .venv/bin/activate   # macOS / Linux
+pip install -r requirements.txt
+cp .env.example .env
+# 編輯 .env，填入你的 OPENAI_API_KEY
+
+## 使用
+
+### GUI 版（推薦）
+
+streamlit run app.py
+
+瀏覽器會自動打開 http://localhost:8501
+
+### 命令列版
+
+# 短音檔（<25MB）
+python transcribe.py meeting.mp3
+
+# 長音檔自動分段
+python transcribe.py meeting.mp3 -o transcript.txt
+
+## 設定
+
+.env 檔案內容：
+
+OPENAI_API_KEY=sk-proj-...
+
+## 常見問題
+
+**Q：ffmpeg not found**
+A：請先用 brew install ffmpeg（macOS）或從 ffmpeg.org 下載（Windows）
+
+**Q：檔案太大**
+A：使用 transcribe.py 而非 GUI 版，它支援自動分段
+
+## 授權
+
+MIT</code></pre>
+
+<p>幾個原則：</p>
+
+<ul>
+  <li><strong>第一段用一句話描述工具做什麼</strong>（不是 marketing 話）</li>
+  <li><strong>環境需求要明確</strong>（Python 版本、外部工具）</li>
+  <li><strong>安裝步驟要可複製貼上</strong>——別人不用思考就能照做</li>
+  <li><strong>使用範例要有具體 command</strong></li>
+</ul>
+
+<div class="callout tip">
+  <span class="label">Tip</span>
+  寫 README 時的一個心法：<strong>假設讀者是「會打開終端機、會 git clone、但不知道這個專案在幹嘛的人」</strong>。比這個熟練的，跳過幾段沒關係；比這個生疏的，可能本來就不是你的目標受眾。寫得太簡單浪費自己時間，寫得太進階沒人懂。
+</div>
+
+<h2>requirements.txt：套件版本鎖定</h2>
+
+<p>每次裝完新套件就更新：</p>
+
+<pre><code>pip freeze &gt; requirements.txt</code></pre>
+
+<p>打開來看，你會看到所有套件的精確版本：</p>
+
+<pre><code>openai==1.50.0
+python-dotenv==1.0.0
+streamlit==1.32.0
+pydantic==2.6.0</code></pre>
+
+<p><strong>為什麼要鎖版本？</strong> 因為三個月後 OpenAI SDK 出 2.0、改了 API，新人裝起來程式直接壞。鎖版本確保<strong>任何時候 clone 下來都跑得起來</strong>。</p>
+
+<div class="callout warning">
+  <span class="label">Warning</span>
+  <code>pip freeze</code> 會記錄<strong>所有</strong>安裝的套件，包括你 pip install 套件 A 時自動裝的相依套件 B、C、D。這完整但有點臃腫。如果你想更乾淨，可以用 <code>pip-tools</code>（<code>pip install pip-tools</code>，然後寫 <code>requirements.in</code> 只列直接相依，自動產生鎖定的 <code>requirements.txt</code>）。對本課這種規模，直接 <code>pip freeze</code> 完全夠用。
+</div>
+
+<h2>.env.example：範本但不含祕密</h2>
+
+<p><code>.env</code> 包含你的真實 key，<strong>永遠不要進 git</strong>。但別人 clone 你的專案後，要知道「需要設哪些環境變數」。</p>
+
+<p>解法：建立 <code>.env.example</code>，裡面寫變數名稱但不寫值：</p>
+
+<pre><code># 把這個檔案複製成 .env，填入實際值
+
+OPENAI_API_KEY=sk-proj-your-key-here</code></pre>
+
+<p>README 引導使用者：</p>
+
+<pre><code>cp .env.example .env
+# 編輯 .env 填入你的 key</code></pre>
+
+<p><code>.env.example</code> 可以進 git（沒有祕密），<code>.env</code> 不能。</p>
+
+<h2>.gitignore：保護祕密與雜物</h2>
+
+<p>放在專案根目錄：</p>
+
+<pre><code># Python
+__pycache__/
+*.pyc
+*.pyo
+.Python
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Secrets
+.env
+*.key
+*.pem
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Project specific
+uploads/
+transcripts/
+*.work/
+
+# Cache & temp
+.pytest_cache/
+.cache/
+*.log</code></pre>
+
+<p><code>.gitignore</code> 必須在第一次 commit 之前就建立——一旦 <code>.env</code> 進了 git 歷史，後面刪也刪不掉（git 永遠記得）。</p>
+
+<div class="callout warning">
+  <span class="label">Warning</span>
+  如果你已經不小心把 <code>.env</code> commit 進去過，<strong>立刻把那把 key 撤銷</strong>（OpenAI dashboard 上 revoke），然後重發一把新的。改 .gitignore 沒用——歷史已經在 GitHub 上了，世界各地的爬蟲都看得到。
+</div>
+
+<h2>版本控制：第一次 commit</h2>
+
+<p>建立完所有檔案，第一次 commit：</p>
+
+<pre><code>git init
+git add .
+git status   # 確認沒有 .env、.venv、uploads/ 出現
+git commit -m "Initial commit"</code></pre>
+
+<p><code>git status</code> 那一步很重要——<strong>確認 .gitignore 真的有作用</strong>。如果你看到 <code>.env</code> 在「Changes to be committed」裡面，停下來！檢查 .gitignore 有沒有寫對。</p>
+
+<p>之後就是正常 git 流程：</p>
+
+<pre><code>git add transcribe.py
+git commit -m "Add language detection"
+git push origin main</code></pre>
+
+<h2>把舊章節的程式整合進來</h2>
+
+<p>現在我們把這套課做過的工具整合到推薦的結構裡：</p>
+
+<pre><code>openai-meeting-tool/
+├── README.md
+├── requirements.txt
+├── .env.example
+├── .gitignore
+├── app.py                 # Chapter 12 的 Streamlit GUI
+├── transcribe.py          # Chapter 9 + 11 的命令列工具（含分段）
+├── summarize.py           # Chapter 8 的摘要工具
+├── meeting_notes.py       # Chapter 13 的結構化會議紀錄
+└── src/
+    ├── __init__.py
+    ├── audio.py           # Chapter 10 + 11 的 ffmpeg 與切段
+    ├── transcriber.py     # Chapter 9 的 OpenAI 轉錄
+    └── summarizer.py      # Chapter 8 + 13 的摘要與結構化</code></pre>
+
+<p>把零散的程式碼搬進這個結構，每個檔案各司其職。Chapter 17 的期末專案就是用這個結構做出完整工具。</p>
+
+<h2>小結</h2>
+
+<ol>
+  <li><strong>入口檔放外層，核心邏輯放 <code>src/</code></strong>——模組化避免重複</li>
+  <li><strong>README.md 要有：簡介、需求、安裝、使用、設定、FAQ</strong></li>
+  <li><strong><code>requirements.txt</code> 鎖版本</strong>——確保跨機器跑得起來</li>
+  <li><strong><code>.env.example</code> 留範本，<code>.env</code> 進 .gitignore</strong>——分開「結構」跟「祕密」</li>
+  <li><strong><code>.gitignore</code> 在第一次 commit 之前建好</strong>——歷史是永久的</li>
+  <li><strong>第一次 commit 前跑 <code>git status</code></strong>——確認沒有意外洩漏</li>
+</ol>
+
+<p>下一章我們深入「安全、成本、錯誤排除」——確保你的工具在真實使用時不會被人偷 key、不會花爆錢、不會莫名其妙崩潰。</p>
+
+<h2>練習</h2>
+
+<ol>
+  <li>把本課做過的工具按照本章的結構整理到一個專案資料夾。</li>
+  <li>寫一份 README，假裝你要把這個工具給「會打開終端機但沒寫過 OpenAI API」的同事用。</li>
+  <li>跑 <code>git init</code>、<code>git add .</code>、<code>git status</code>，確認 <code>.env</code> 跟 <code>.venv/</code> 都被 ignore 了。</li>
+  <li>在 README 加一段「常見錯誤排除」，至少寫三個你自己這幾章踩過的坑。</li>
+</ol>
+<div class="chapter-nav">
+  <a class="nav-prev" href="#ch14">← 上一章：Streaming</a>
+  <a class="nav-top" href="#top">↑ 回目錄</a>
+  <a class="nav-next" href="#ch16">下一章：安全、成本與錯誤排除 →</a>
+</div>
+</section>
+
+<section id="ch16" class="chapter">
+<p class="chapter-label">Chapter 16</p>
+<h1>安全、成本與錯誤排除</h1>
+
+<p>到目前為止我們做的工具都能跑。但「能跑」跟「敢給人用」是兩回事。這章我們處理三個會讓你晚上睡不好的問題：</p>
+
+<ol>
+  <li><strong>API key 怎麼不被偷</strong>（被偷會花你的錢）</li>
+  <li><strong>API 成本怎麼估、怎麼控制</strong>（避免月底收到嚇人的帳單）</li>
+  <li><strong>錯誤怎麼處理</strong>（讓使用者看到「請重試」而不是「TypeError: 'NoneType'...」）</li>
+</ol>
+
+<p>這章的內容看起來不性感，但<strong>它決定了你的工具能不能真的拿出去用</strong>。</p>
+
+<h2>第一部分：API Key 安全</h2>
+
+<p>OpenAI API key 是字串、沒有「設備綁定」、誰拿到都能用。所以保護它<strong>完全靠你</strong>。</p>
+
+<h3>三條鐵律</h3>
+
+<p><strong>1. 永遠不要把 key 寫進程式碼</strong></p>
+
+<pre><code># 絕對不要這樣
+client = OpenAI(api_key="sk-proj-xxxxx")</code></pre>
+
+<p>正確做法：用環境變數（Chapter 5 教過）：</p>
+
+<pre><code>load_dotenv()
+client = OpenAI()  # 自動讀 OPENAI_API_KEY</code></pre>
+
+<p><strong>2. 永遠不要把 key 放進前端</strong></p>
+
+<pre><code>&lt;!-- 絕對不要這樣 --&gt;
+&lt;script&gt;
+  const apiKey = "sk-proj-xxxxx";
+  fetch("https://api.openai.com/v1/...", { headers: { Authorization: `Bearer ${apiKey}` } });
+&lt;/script&gt;</code></pre>
+
+<p>瀏覽器的 JavaScript 任何人都能用 F12 看到。如果你做的是「網頁讓使用者呼叫 OpenAI」，<strong>一定要透過你的後端轉手</strong>——前端打你的 server，server 用你的 key 打 OpenAI。</p>
+
+<p><strong>3. 永遠不要把 key 提交到 git</strong></p>
+
+<p><code>.env</code> 進 <code>.gitignore</code>（Chapter 15 講過）。<strong>特別小心截圖</strong>——很多人寫教學影片時不小心把 key 截進去，傳到 YouTube 就洩漏了。</p>
+
+<div class="callout warning">
+  <span class="label">Warning</span>
+  GitHub 有自動掃描，偵測到 commit 含 OpenAI key 會立刻撤銷它。但 <strong>bot 不總是夠快</strong>——已經有真實案例是 key 在被撤銷前的幾分鐘內被人撿去打了幾百美金。除了等 GitHub 撤銷，你應該主動到 OpenAI dashboard 撤銷那把 key。
+</div>
+
+<h3>多人專案怎麼共用</h3>
+
+<p>如果你有同事或朋友要一起開發，<strong>不要把 key 寄給他們</strong>。讓每個人到 OpenAI dashboard 建立<strong>自己的 key</strong>。OpenAI 允許一個帳號開多把 key，並且各自可以設用量上限。</p>
+
+<p>對團隊：用 OpenAI 的 <strong>Project</strong> 功能——每個專案可以單獨設預算、權限、用量監控。</p>
+
+<h3>如果懷疑 key 洩漏</h3>
+
+<p>立刻：</p>
+
+<ol>
+  <li>到 OpenAI dashboard → API keys</li>
+  <li>找到那把 key，點 Revoke</li>
+  <li>建立新的 key</li>
+  <li>更新 <code>.env</code></li>
+  <li>檢查 git 歷史，確認 key 不在裡面：<code>git log -p | grep -i "sk-"</code></li>
+</ol>
+
+<div class="callout tip">
+  <span class="label">Tip</span>
+  養成<strong>每 3-6 個月輪換 key</strong> 的習慣，即使沒有懷疑洩漏。這是企業安全的標準做法——「key 像衣服，不是越用越久越好」。OpenAI 允許你同時保留多把 key，輪換時可以無痛切換。
+</div>
+
+<h2>第二部分：成本控制</h2>
+
+<p>OpenAI API 按 token 計費。<strong>搞不清楚 token 是什麼，帳單就會搞不清楚</strong>。</p>
+
+<h3>Token 是什麼</h3>
+
+<p>Token 是模型處理文字的「基本單位」，<strong>不完全等於字</strong>。粗略對應：</p>
+
+<ul>
+  <li><strong>1 token ≈ 0.75 個英文單字 ≈ 0.5 到 1 個中文字</strong></li>
+  <li>句點、逗號、空格也算 token</li>
+</ul>
+
+<p>舉例：</p>
+
+<table>
+  <thead>
+    <tr><th>文字</th><th>大約 tokens</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>hello</code></td><td>1</td></tr>
+    <tr><td><code>hello world</code></td><td>2</td></tr>
+    <tr><td><code>你好</code></td><td>2-3</td></tr>
+    <tr><td><code>今天天氣很好</code></td><td>5-6</td></tr>
+    <tr><td>一段 100 字中文</td><td>100-200</td></tr>
+    <tr><td>一份 5000 字會議紀錄</td><td>5000-10000</td></tr>
+  </tbody>
+</table>
+
+<p>要精確算，用 OpenAI 出的 <code>tiktoken</code> library：</p>
+
+<pre><code>pip install tiktoken</code></pre>
+
+<pre><code>import tiktoken
+
+encoding = tiktoken.encoding_for_model("gpt-4o")
+text = "請用一句話解釋什麼是 API。"
+tokens = encoding.encode(text)
+print(f"Token 數：{len(tokens)}")
+print(f"字元數：{len(text)}")</code></pre>
+
+<p>跑跑看，你會發現中文 1 個字常常等於 2-3 個 token——比英文貴。</p>
+
+<h3>成本估算</h3>
+
+<p>OpenAI 公布的定價以「每百萬 token」為單位。本書寫作時的範例價格（請以 OpenAI 官方為準）：</p>
+
+<table>
+  <thead>
+    <tr><th>模型</th><th>Input</th><th>Output</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>gpt-4o</code></td><td>$2.50 / 1M</td><td>$10 / 1M</td></tr>
+    <tr><td><code>gpt-4o-mini</code></td><td>$0.15 / 1M</td><td>$0.60 / 1M</td></tr>
+    <tr><td><code>whisper-1</code></td><td>$0.006 / 分鐘</td><td>-</td></tr>
+    <tr><td><code>gpt-4o-transcribe</code></td><td>$0.006 / 分鐘</td><td>-</td></tr>
+  </tbody>
+</table>
+
+<p>實用估算範例：</p>
+
+<p><strong>情境 1：1 小時會議轉錄 + 摘要</strong></p>
+
+<ul>
+  <li>轉錄：60 分鐘 × $0.006/分鐘 = $0.36</li>
+  <li>假設逐字稿 8000 字（≈ 12000 tokens 中文）</li>
+  <li>摘要：input 12k + output 500 ≈ $0.03（用 gpt-4o）</li>
+  <li><strong>總計：約 $0.39</strong></li>
+</ul>
+
+<p><strong>情境 2：每天處理 100 個客戶回饋分類</strong></p>
+
+<ul>
+  <li>每篇 500 字（≈ 750 tokens input） + 50 tokens output</li>
+  <li>用 gpt-4o-mini：100 × (750×0.15 + 50×0.6) / 1M = $0.014/天</li>
+  <li><strong>一個月：約 $0.42</strong></li>
+</ul>
+
+<p><strong>情境 3：給 1000 個使用者各跑 10 次摘要</strong></p>
+
+<ul>
+  <li>萬一你用 gpt-4o：10000 × (3000 input + 500 output) ≈ $125</li>
+  <li>改用 gpt-4o-mini：≈ $7.50</li>
+  <li><strong>選錯模型差 17 倍</strong></li>
+</ul>
+
+<div class="callout note">
+  <span class="label">Note</span>
+  一個務實的省錢原則：<strong>能用 gpt-4o-mini 就用 mini</strong>。對「分類、抽取、結構化、簡單摘要」這類任務，mini 的品質完全夠用，價格只有 gpt-4o 的 1/17。<strong>只在真的需要長文推理、複雜邏輯的場景才用 gpt-4o 或 o1</strong>。
+</div>
+
+<h3>估算函式</h3>
+
+<p>寫一個估算工具：</p>
+
+<pre><code>import tiktoken
+
+PRICING = {
+    "gpt-4o":         {"input": 2.50,  "output": 10.0},
+    "gpt-4o-mini":    {"input": 0.15,  "output": 0.60},
+}
+
+def estimate_cost(text: str, model: str, expected_output_tokens: int = 500) -&gt; float:
+    encoding = tiktoken.encoding_for_model(model)
+    input_tokens = len(encoding.encode(text))
+    p = PRICING[model]
+    cost = (input_tokens * p["input"] + expected_output_tokens * p["output"]) / 1_000_000
+    return cost
+
+text = open("meeting.txt", encoding="utf-8").read()
+print(f"gpt-4o:      ${estimate_cost(text, 'gpt-4o'):.4f}")
+print(f"gpt-4o-mini: ${estimate_cost(text, 'gpt-4o-mini'):.4f}")</code></pre>
+
+<p>跑之前先估算——對「一次處理很多檔案」的批次任務尤其重要。</p>
+
+<h3>設定 OpenAI 帳號的硬上限</h3>
+
+<p>OpenAI dashboard 提供「<strong>Monthly budget</strong>」設定：</p>
+
+<ul>
+  <li>設定每月最高花費（例如 $50）</li>
+  <li>超過會自動停止 API 服務</li>
+  <li>你會收到 email 警告</li>
+</ul>
+
+<p><strong>這是「就算程式有 bug 也不會花爆」的最後一道防線</strong>。強烈建議所有人都設一個合理的上限。</p>
+
+<div class="callout warning">
+  <span class="label">Warning</span>
+  沒設上限的話，一個寫錯的無限迴圈可能在幾小時內花掉幾百美金。曾經有真實案例：開發者寫了一個 retry 邏輯但忘記退避，網路一抽風就連續打 API 幾千次。<strong>Monthly budget 是免費的保險，務必設定</strong>。
+</div>
+
+<h2>第三部分：錯誤處理</h2>
+
+<p>實際使用 API 會遇到各種錯誤。<strong>好的錯誤處理 = 使用者看到「請檢查網路」而不是 Python traceback</strong>。</p>
+
+<h3>常見 OpenAI 錯誤</h3>
+
+<pre><code>from openai import (
+    APIConnectionError,
+    APIError,
+    AuthenticationError,
+    BadRequestError,
+    PermissionDeniedError,
+    RateLimitError,
+)
+
+try:
+    response = client.responses.create(...)
+except AuthenticationError:
+    print("API key 無效，請檢查 .env")
+except RateLimitError:
+    print("超過呼叫頻率上限，請稍候再試")
+except APIConnectionError:
+    print("無法連線 OpenAI，請檢查網路")
+except BadRequestError as e:
+    print(f"請求格式錯誤：{e}")
+except APIError as e:
+    print(f"OpenAI 伺服器錯誤：{e}")</code></pre>
+
+<p>對使用者導向的工具，<strong>把這些 exception 包裝成清楚的訊息</strong>。對技術人員的工具，也許可以印出更多細節幫除錯。</p>
+
+<h3>重試與指數退避</h3>
+
+<p>網路問題、暫時的 rate limit 通常等一下就好。標準做法是「指數退避重試」（Chapter 11 教過）：</p>
+
+<pre><code>import time
+
+def call_with_retry(fn, max_attempts: int = 3):
+    for attempt in range(1, max_attempts + 1):
+        try:
+            return fn()
+        except (RateLimitError, APIConnectionError) as e:
+            if attempt == max_attempts:
+                raise
+            wait = 2 ** attempt   # 2, 4, 8 秒
+            print(f"重試 {attempt}/{max_attempts}（{wait}s）：{e}")
+            time.sleep(wait)</code></pre>
+
+<p>OpenAI Python SDK 1.0+ 內建重試，但只對特定錯誤生效，自己包一層比較有彈性。</p>
+
+<h3>Timeout 設定</h3>
+
+<p>預設的 API timeout 很長（120 秒）。對「使用者在 GUI 按按鈕」的情境，10 秒沒回應就該 fallback：</p>
+
+<pre><code>client = OpenAI(timeout=30.0)</code></pre>
+
+<p>或單次呼叫：</p>
+
+<pre><code>response = client.responses.create(
+    model="gpt-4o",
+    input="...",
+    timeout=10.0,
+)</code></pre>
+
+<div class="callout note">
+  <span class="label">Note</span>
+  對長任務（streaming、大量 token），timeout 要設長一點。對短任務（分類、簡單問答），timeout 設短可以早點 fallback。<strong>沒有一個 timeout 值對所有情境都對</strong>，依任務調整。
+</div>
+
+<h3>印出有用的錯誤訊息</h3>
+
+<p>對使用者：</p>
+
+<pre><code>print("錯誤：無法連線 OpenAI。請檢查網路後重試。", file=sys.stderr)</code></pre>
+
+<p>對開發者（你自己除錯）：</p>
+
+<pre><code>import traceback
+
+try:
+    ...
+except Exception as e:
+    print(f"未預期錯誤：{type(e).__name__}: {e}", file=sys.stderr)
+    traceback.print_exc()</code></pre>
+
+<p><strong>不要把 raw exception 丟給終端使用者看</strong>。把它記到 log file，給使用者看精簡版。</p>
+
+<h2>三方面整合</h2>
+
+<p>把這章的東西組合成一個「<strong>生產可用</strong>」的 API 呼叫包裝：</p>
+
+<pre><code>import logging
+import time
+from openai import OpenAI, RateLimitError, APIConnectionError, AuthenticationError
+
+logging.basicConfig(level=logging.INFO)
+log = logging.getLogger(__name__)
+
+client = OpenAI(timeout=30.0)
+
+def safe_call(fn, max_retries: int = 3) -&gt; str:
+    for attempt in range(1, max_retries + 1):
+        try:
+            return fn()
+        except AuthenticationError:
+            raise RuntimeError("API key 無效，請檢查 .env 設定")
+        except RateLimitError as e:
+            if attempt == max_retries:
+                raise RuntimeError("API 呼叫太頻繁，請稍候再試") from e
+            time.sleep(2 ** attempt)
+            log.warning(f"Rate limit，{2**attempt}s 後重試")
+        except APIConnectionError as e:
+            if attempt == max_retries:
+                raise RuntimeError("無法連線 OpenAI，請檢查網路") from e
+            time.sleep(2 ** attempt)
+            log.warning(f"連線失敗，{2**attempt}s 後重試")
+    raise RuntimeError("超過最大重試次數")</code></pre>
+
+<p>使用：</p>
+
+<pre><code>try:
+    text = safe_call(lambda: client.responses.create(
+        model="gpt-4o",
+        input="hello",
+    ).output_text)
+    print(text)
+except RuntimeError as e:
+    print(f"錯誤：{e}", file=sys.stderr)</code></pre>
+
+<h2>小結</h2>
+
+<p><strong>安全</strong>：</p>
+
+<ol>
+  <li>Key 不進程式碼、不進前端、不進 git</li>
+  <li>用 <code>.env</code> + <code>python-dotenv</code></li>
+  <li>懷疑洩漏立刻 revoke</li>
+  <li>每 3-6 個月輪換 key</li>
+</ol>
+
+<p><strong>成本</strong>：</p>
+
+<ol>
+  <li>Token ≠ 字，中文比英文貴</li>
+  <li><code>tiktoken</code> 算精確值</li>
+  <li>能用 gpt-4o-mini 就用 mini（差 17 倍）</li>
+  <li><strong>OpenAI dashboard 設 Monthly budget</strong>——免費保險</li>
+  <li>大量任務先估算、再批次跑</li>
+</ol>
+
+<p><strong>錯誤</strong>：</p>
+
+<ol>
+  <li>catch 具體 exception，不要 catch-all</li>
+  <li>用指數退避重試</li>
+  <li>設 timeout</li>
+  <li>給使用者精簡訊息，把細節記 log</li>
+</ol>
+
+<p>下一章我們把這套課所有學過的東西串成期末專案——一個完整的會議逐字稿工具，可以給家人朋友用。</p>
+
+<h2>練習</h2>
+
+<ol>
+  <li>到 OpenAI dashboard，設定 Monthly budget（例如 $20）。如果你還沒設過，這是這章最重要的練習。</li>
+  <li>用 <code>tiktoken</code> 算你手邊一份長文件的 token 數，估算用 gpt-4o 跟 gpt-4o-mini 各會花多少錢。</li>
+  <li>把 Chapter 11 的長音檔轉錄工具加上 <code>safe_call</code>，跑一次故意斷網的場景，確認重試與錯誤訊息運作正常。</li>
+  <li>在 <code>.gitignore</code> 跟 README 提醒部分檢查你的專案——確認沒有任何地方意外洩漏 key（截圖、commit 歷史、README 範例）。</li>
+</ol>
+<div class="chapter-nav">
+  <a class="nav-prev" href="#ch15">← 上一章：專案結構與 README</a>
+  <a class="nav-top" href="#top">↑ 回目錄</a>
+  <a class="nav-next" href="#ch17">下一章：期末專案：會議逐字稿工具 →</a>
+</div>
+</section>
+
+<section id="ch17" class="chapter">
+<p class="chapter-label">Chapter 17</p>
+<h1>期末專案：會議逐字稿工具</h1>
+
+<p>恭喜，到這章你已經學完整套課的所有技術元件。最後一章我們把它們全部串起來，做一個<strong>真的可以拿出去用</strong>的會議逐字稿工具。</p>
+
+<h2>專案目標</h2>
+
+<p>做一個工具，輸入一份會議錄音（MP3 / MP4 / M4A 等），自動產出：</p>
+
+<ol>
+  <li><strong>完整逐字稿</strong>（純文字）</li>
+  <li><strong>會議摘要</strong>（100 字內）</li>
+  <li><strong>重點清單</strong>（條列式）</li>
+  <li><strong>Action Items</strong>（每條含負責人、任務、期限）</li>
+  <li><strong>匯出格式</strong>：<code>.txt</code>（純文字）與 <code>.md</code>（Markdown）</li>
+</ol>
+
+<p>支援命令列與 GUI 兩種使用方式。長音檔自動分段。錯誤訊息清楚。可以給沒寫過程式的同事用。</p>
+
+<h2>整體架構</h2>
+
+<p>按照 Chapter 15 的專案結構：</p>
+
+<pre><code>openai-meeting-tool/
+├── README.md
+├── requirements.txt
+├── .env.example
+├── .gitignore
+├── app.py                   # Streamlit GUI 入口
+├── meeting_pipeline.py      # 命令列入口
+├── src/
+│   ├── __init__.py
+│   ├── audio.py             # ffmpeg 轉檔與切段
+│   ├── transcriber.py       # OpenAI 轉錄
+│   ├── summarizer.py        # 摘要 + 結構化會議紀錄
+│   └── exporter.py          # 匯出 txt / md
+└── uploads/、transcripts/   # 執行時自動建立</code></pre>
+
+<p>我們一個檔案一個檔案實作。</p>
+
+<h2><code>src/audio.py</code>：音檔處理</h2>
+
+<pre><code>"""音檔轉檔與切段。"""
+import json
+import subprocess
+from pathlib import Path
+
+
+def get_duration(audio_path: Path) -&gt; float:
+    result = subprocess.run(
+        ["ffprobe", "-v", "error",
+         "-show_format", "-print_format", "json",
+         str(audio_path)],
+        check=True, capture_output=True, text=True,
+    )
+    return float(json.loads(result.stdout)["format"]["duration"])
+
+
+def prepare(input_path: Path, output_path: Path | None = None) -&gt; Path:
+    """轉成 16kHz mono WAV。"""
+    if output_path is None:
+        output_path = input_path.with_name(f"{input_path.stem}_16k.wav")
+    if output_path.exists():
+        return output_path
+    subprocess.run(
+        ["ffmpeg", "-y", "-i", str(input_path),
+         "-ac", "1", "-ar", "16000", "-vn",
+         "-f", "wav", "-acodec", "pcm_s16le",
+         str(output_path)],
+        check=True, capture_output=True,
+    )
+    return output_path
+
+
+def split(audio_path: Path, work_dir: Path, segment_seconds: int = 600) -&gt; list[Path]:
+    """切成多段 WAV。"""
+    work_dir.mkdir(parents=True, exist_ok=True)
+    pattern = work_dir / "seg_%03d.wav"
+    subprocess.run(
+        ["ffmpeg", "-y", "-i", str(audio_path),
+         "-f", "segment", "-segment_time", str(segment_seconds),
+         "-reset_timestamps", "1", "-c", "copy",
+         str(pattern)],
+        check=True, capture_output=True,
+    )
+    return sorted(work_dir.glob("seg_*.wav"))</code></pre>
+
+<h2><code>src/transcriber.py</code>：轉錄</h2>
+
+<pre><code>"""OpenAI 轉錄與分段處理。"""
+import sys
+import time
+from pathlib import Path
+
+from openai import OpenAI, APIConnectionError, RateLimitError
+
+
+def transcribe_one(client: OpenAI, audio_path: Path,
+                   model: str = "gpt-4o-transcribe",
+                   language: str = "zh") -&gt; str:
+    for attempt in range(1, 4):
+        try:
+            with open(audio_path, "rb") as f:
+                result = client.audio.transcriptions.create(
+                    model=model, file=f, language=language,
+                )
+            return result.text
+        except (APIConnectionError, RateLimitError) as e:
+            if attempt == 3:
+                raise
+            wait = 2 ** attempt
+            print(f"  失敗：{e}，{wait}s 後重試...", file=sys.stderr)
+            time.sleep(wait)
+    return ""
+
+
+def transcribe_segments(client: OpenAI, segments: list[Path],
+                        cache_dir: Path,
+                        model: str = "gpt-4o-transcribe",
+                        language: str = "zh",
+                        progress=None) -&gt; str:
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    texts = []
+    total = len(segments)
+    for i, seg in enumerate(segments, start=1):
+        cache_file = cache_dir / f"{seg.stem}.txt"
+        if cache_file.exists():
+            text = cache_file.read_text(encoding="utf-8")
+        else:
+            if progress:
+                progress(i, total, f"轉錄 {seg.name}")
+            text = transcribe_one(client, seg, model, language)
+            cache_file.write_text(text, encoding="utf-8")
+        texts.append(text)
+    return "\n\n".join(t.strip() for t in texts if t.strip())</code></pre>
+
+<h2><code>src/summarizer.py</code>：摘要與結構化</h2>
+
+<pre><code>"""摘要與結構化會議紀錄。"""
+from openai import OpenAI
+from pydantic import BaseModel, Field
+
+
+class ActionItem(BaseModel):
+    owner: str = Field(description="負責人姓名")
+    task: str = Field(description="任務內容")
+    due_date: str = Field(description="期限，沒提到留空字串")
+
+
+class MeetingNote(BaseModel):
+    title: str = Field(description="會議主題，10 字內")
+    summary: str = Field(description="摘要，100 字內")
+    key_points: list[str] = Field(description="重點清單")
+    action_items: list[ActionItem] = Field(description="行動項清單")
+
+
+INSTRUCTIONS = """
+你會收到一份會議逐字稿。請整理成結構化的會議紀錄。
+
+規則：
+1. 標題簡短，反映會議主題
+2. 摘要 100 字內，講清楚會議目的與結論
+3. 重點清單列出本次討論的關鍵主題（5-8 條）
+4. Action items 每條要有：負責人、任務、期限
+5. 不要編造資訊，沒提到就留空或空 list
+6. 用繁體中文
+""".strip()
+
+
+def summarize_meeting(client: OpenAI, transcript: str,
+                      model: str = "gpt-4o") -&gt; MeetingNote:
+    response = client.responses.parse(
+        model=model,
+        instructions=INSTRUCTIONS,
+        input=transcript,
+        response_format=MeetingNote,
+        temperature=0.3,
+    )
+    return response.output_parsed</code></pre>
+
+<h2><code>src/exporter.py</code>：匯出</h2>
+
+<pre><code>"""匯出 txt / md。"""
+from pathlib import Path
+from src.summarizer import MeetingNote
+
+
+def to_text(transcript: str, note: MeetingNote) -&gt; str:
+    lines = [
+        f"會議：{note.title}",
+        "",
+        "摘要：",
+        note.summary,
+        "",
+        "重點：",
+    ]
+    lines.extend(f"- {p}" for p in note.key_points)
+    lines.append("")
+    lines.append("Action Items:")
+    for a in note.action_items:
+        due = f"（{a.due_date}）" if a.due_date else ""
+        lines.append(f"- {a.owner}：{a.task}{due}")
+    lines.extend(["", "==== 完整逐字稿 ====", "", transcript])
+    return "\n".join(lines)
+
+
+def to_markdown(transcript: str, note: MeetingNote) -&gt; str:
+    lines = [
+        f"# {note.title}",
+        "",
+        "## 摘要",
+        "",
+        note.summary,
+        "",
+        "## 重點",
+        "",
+    ]
+    lines.extend(f"- {p}" for p in note.key_points)
+    lines.extend(["", "## Action Items", ""])
+    if note.action_items:
+        lines.append("| 負責人 | 任務 | 期限 |")
+        lines.append("|---|---|---|")
+        for a in note.action_items:
+            lines.append(f"| {a.owner} | {a.task} | {a.due_date or '-'} |")
+    else:
+        lines.append("（無）")
+    lines.extend(["", "## 完整逐字稿", "", transcript])
+    return "\n".join(lines)
+
+
+def export(output_dir: Path, base_name: str, transcript: str,
+           note: MeetingNote) -&gt; tuple[Path, Path]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    txt_path = output_dir / f"{base_name}.txt"
+    md_path = output_dir / f"{base_name}.md"
+    txt_path.write_text(to_text(transcript, note), encoding="utf-8")
+    md_path.write_text(to_markdown(transcript, note), encoding="utf-8")
+    return txt_path, md_path</code></pre>
+
+<h2><code>meeting_pipeline.py</code>：命令列入口</h2>
+
+<pre><code>"""命令列：完整跑一次。"""
+import argparse
+import sys
+from pathlib import Path
+
+from dotenv import load_dotenv
+from openai import OpenAI
+
+from src import audio, transcriber, summarizer, exporter
+
+
+def main() -&gt; None:
+    parser = argparse.ArgumentParser(description="會議逐字稿工具")
+    parser.add_argument("input", help="音檔路徑")
+    parser.add_argument("-o", "--output-dir", default="transcripts")
+    parser.add_argument("-m", "--transcribe-model",
+                        default="gpt-4o-transcribe",
+                        choices=["gpt-4o-transcribe", "gpt-4o-mini-transcribe", "whisper-1"])
+    parser.add_argument("--summary-model", default="gpt-4o",
+                        choices=["gpt-4o", "gpt-4o-mini"])
+    parser.add_argument("-s", "--segment-seconds", type=int, default=600)
+    args = parser.parse_args()
+
+    load_dotenv()
+    client = OpenAI(timeout=60.0)
+
+    input_path = Path(args.input)
+    if not input_path.exists():
+        print(f"找不到 {input_path}", file=sys.stderr); sys.exit(1)
+
+    work_dir = input_path.with_suffix(".work")
+    cache_dir = work_dir / "cache"
+
+    print("[1/4] 轉成 16kHz mono WAV...", file=sys.stderr)
+    prepared = audio.prepare(input_path)
+
+    print("[2/4] 切段...", file=sys.stderr)
+    segments = audio.split(prepared, work_dir, args.segment_seconds)
+    print(f"      {len(segments)} 段", file=sys.stderr)
+
+    print("[3/4] 轉錄...", file=sys.stderr)
+    def progress(i, total, msg):
+        print(f"      [{i}/{total}] {msg}", file=sys.stderr)
+    transcript = transcriber.transcribe_segments(
+        client, segments, cache_dir,
+        model=args.transcribe_model, progress=progress,
+    )
+
+    print("[4/4] 產生會議紀錄...", file=sys.stderr)
+    note = summarizer.summarize_meeting(client, transcript, model=args.summary_model)
+
+    output_dir = Path(args.output_dir)
+    txt_path, md_path = exporter.export(
+        output_dir, input_path.stem, transcript, note,
+    )
+    print(f"\n完成。輸出：")
+    print(f"  {txt_path}")
+    print(f"  {md_path}")
+
+
+if __name__ == "__main__":
+    main()</code></pre>
+
+<h2><code>app.py</code>：Streamlit GUI 入口</h2>
+
+<pre><code>"""Streamlit GUI：完整工具。"""
+import streamlit as st
+from pathlib import Path
+from openai import OpenAI
+
+from src import audio, transcriber, summarizer, exporter
+
+
+st.set_page_config(page_title="會議逐字稿工具", layout="wide")
+st.title("會議逐字稿工具")
+
+with st.sidebar:
+    st.header("設定")
+    api_key = st.text_input("OpenAI API Key", type="password",
+                            help="只在這次 session 使用，不會儲存")
+    transcribe_model = st.selectbox(
+        "轉錄模型",
+        ["gpt-4o-transcribe", "gpt-4o-mini-transcribe", "whisper-1"],
+    )
+    summary_model = st.selectbox("摘要模型", ["gpt-4o", "gpt-4o-mini"])
+    segment_seconds = st.slider("切段秒數", 120, 900, 600, step=60)
+
+
+uploaded = st.file_uploader(
+    "上傳會議錄音（mp3 / mp4 / wav / m4a 等）",
+    type=["mp3", "mp4", "m4a", "wav", "webm", "ogg", "flac"],
+)
+
+if uploaded and api_key and st.button("開始", type="primary"):
+    upload_dir = Path("uploads")
+    upload_dir.mkdir(exist_ok=True)
+    input_path = upload_dir / uploaded.name
+    input_path.write_bytes(uploaded.getbuffer())
+
+    client = OpenAI(api_key=api_key, timeout=60.0)
+    work_dir = input_path.with_suffix(".work")
+    cache_dir = work_dir / "cache"
+
+    try:
+        with st.status("處理中...", expanded=True) as status:
+            st.write("轉成 16kHz mono WAV...")
+            prepared = audio.prepare(input_path)
+
+            st.write("切段...")
+            segments = audio.split(prepared, work_dir, segment_seconds)
+            st.write(f"切成 {len(segments)} 段")
+
+            st.write("逐段轉錄...")
+            transcript = transcriber.transcribe_segments(
+                client, segments, cache_dir,
+                model=transcribe_model,
+            )
+
+            st.write("產生會議紀錄...")
+            note = summarizer.summarize_meeting(client, transcript,
+                                                 model=summary_model)
+
+            status.update(label="完成", state="complete", expanded=False)
+
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            st.subheader(note.title)
+            st.markdown("**摘要**")
+            st.write(note.summary)
+
+            st.markdown("**重點**")
+            for p in note.key_points:
+                st.write(f"- {p}")
+
+            st.markdown("**Action Items**")
+            for a in note.action_items:
+                due = f"（{a.due_date}）" if a.due_date else ""
+                st.write(f"- {a.owner}：{a.task}{due}")
+
+        with col2:
+            st.subheader("完整逐字稿")
+            st.text_area("", transcript, height=600, label_visibility="collapsed")
+
+        st.divider()
+        txt_content = exporter.to_text(transcript, note)
+        md_content = exporter.to_markdown(transcript, note)
+        c1, c2 = st.columns(2)
+        c1.download_button("下載 .txt", data=txt_content,
+                           file_name=f"{input_path.stem}.txt",
+                           mime="text/plain")
+        c2.download_button("下載 .md", data=md_content,
+                           file_name=f"{input_path.stem}.md",
+                           mime="text/markdown")
+    except Exception as e:
+        st.error(f"處理失敗：{type(e).__name__}: {e}")
+
+elif not api_key:
+    st.info("請在側邊欄輸入 OpenAI API Key")</code></pre>
+
+<h2>評量標準</h2>
+
+<p>期末專案完成的標準：</p>
+
+<ul>
+  <li>能在本機跑 <code>python meeting_pipeline.py xxx.mp3</code> 完整跑完</li>
+  <li>能在本機跑 <code>streamlit run app.py</code> 並完整操作</li>
+  <li>API key 不寫死在程式碼，從 <code>.env</code> 或 GUI 輸入</li>
+  <li>處理失敗會印出清楚錯誤訊息，不只是 Python traceback</li>
+  <li><code>.gitignore</code> 設定正確，<code>git status</code> 看不到 <code>.env</code> 跟 <code>.venv/</code></li>
+  <li>有可讀的 README，覆蓋安裝、使用、常見錯誤</li>
+  <li>至少跑過一個 30 分鐘以上的真實音檔，輸出可讀</li>
+</ul>
+
+<h2>可以延伸的方向</h2>
+
+<p>把這個專案做完後，可以再延伸：</p>
+
+<ul>
+  <li><strong>多人對話辨識（speaker diarization）</strong>：用 <code>pyannote.audio</code> 之類的工具標記「誰在講話」</li>
+  <li><strong>即時轉錄</strong>：用 OpenAI 的 Realtime API，邊講邊轉</li>
+  <li><strong>整合到 Zoom / Google Meet</strong>：自動抓會議錄音，跑完寄 email</li>
+  <li><strong>多語言對齊</strong>：原文 + 翻譯逐字稿並排</li>
+  <li><strong>跑在自己的伺服器</strong>：Streamlit Cloud / Railway / fly.io 部署</li>
+  <li><strong>加上權限管理</strong>：多使用者各自 key、各自空間</li>
+  <li><strong>整合到 Notion / Linear</strong>：自動把 action items 變成 ticket</li>
+</ul>
+
+<h2>全課回顧</h2>
+
+<p>從 Chapter 0 到這裡，我們走過：</p>
+
+<ul>
+  <li><strong>環境與基礎</strong>（Ch0-2）：終端機、Python 最小子集、檔案與錯誤處理</li>
+  <li><strong>API 概念</strong>（Ch3-4）：什麼是 API、HTTP、JSON</li>
+  <li><strong>第一個工具</strong>（Ch5-8）：環境設定、第一個 API call、Prompt、命令列工具</li>
+  <li><strong>音訊處理</strong>（Ch9-11）：語音轉文字、ffmpeg、長音檔切段</li>
+  <li><strong>產品化</strong>（Ch12-14）：GUI、結構化輸出、Streaming</li>
+  <li><strong>交付</strong>（Ch15-17）：專案結構、安全成本、期末整合</li>
+</ul>
+
+<p><strong>整套技能其實是「做工具」的工程能力</strong>。模型只是其中一個元件，整個流程從「使用者需求 → 介面 → 處理邏輯 → 模型 → 輸出 → 安全成本」全部都要顧到。</p>
+
+<p>恭喜你完成這套課。現在你會的這套東西，已經可以做出真實有用的小工具。<strong>接下來最重要的事：找一個自己會用、會痛的場景，把它做出來</strong>。聽起來很普通，但這是把「學過」變成「會用」的唯一方式。</p>
+
+<h2>練習</h2>
+
+<ol>
+  <li>把這個期末專案完整實作一次，用一場真實的會議錄音跑通流程。</li>
+  <li>改一個你會用的場景：例如 podcast 字幕、訪談整理、客戶通話分析。看看本架構能不能直接套用、要改哪裡。</li>
+  <li>把成品丟到 GitHub（記得先檢查 <code>.gitignore</code>），寫一份完整 README，給朋友 clone 試用。</li>
+  <li>估算一個月你會跑多少次、總成本多少。如果有意義，到 OpenAI dashboard 設一個對應的 Monthly budget。</li>
+</ol>
+<div class="chapter-nav">
+  <a class="nav-prev" href="#ch16">← 上一章：安全、成本與錯誤排除</a>
+  <a class="nav-top" href="#top">↑ 回目錄</a>
+  
+</div>
+</section>
+    </main>
+
+  </div>
+
+</div>
+
+<a href="#top" class="back-to-top" aria-label="回到頂端">↑</a>
+
+<script>
+  // Scroll-spy: highlight current chapter in sidebar based on scroll position.
+  (function () {
+    const links = document.querySelectorAll('.sidebar a[data-target]');
+    if (!links.length) return;
+
+    const linkByTarget = {};
+    links.forEach(a => { linkByTarget[a.dataset.target] = a; });
+
+    const sections = Array.from(document.querySelectorAll('section.chapter'));
+    if (!sections.length) return;
+
+    let currentActive = null;
+
+    function setActive(id) {
+      if (currentActive === id) return;
+      currentActive = id;
+      links.forEach(a => a.classList.remove('active'));
+      const link = linkByTarget[id];
+      if (link) {
+        link.classList.add('active');
+        // Keep active link visible in sidebar if scrolled
+        const sidebar = document.querySelector('.sidebar');
+        const rect = link.getBoundingClientRect();
+        const sidebarRect = sidebar.getBoundingClientRect();
+        if (rect.top < sidebarRect.top || rect.bottom > sidebarRect.bottom) {
+          link.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+      }
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      // Pick the section closest to the top edge of the viewport that's visible.
+      const visible = entries
+        .filter(e => e.isIntersecting)
+        .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+      if (visible.length) {
+        setActive(visible[0].target.id);
+      }
+    }, {
+      rootMargin: '-10% 0px -70% 0px',
+      threshold: 0,
+    });
+
+    sections.forEach(s => observer.observe(s));
+
+    // Initialize with first section
+    setActive(sections[0].id);
+  })();
+</script>
+
+</body>
+</html>

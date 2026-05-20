@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="utf-8">
+<title>Chapter 6. 第一個 Responses API 程式</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<article>
+
+<p class="chapter-label">Chapter 6</p>
+<h1>第一個 Responses API 程式</h1>
+
+<p>前面五章把路鋪好了：終端機會用了，Python 環境裝起來了，API key 也設好了。這章我們終於要打第一通電話給 OpenAI——而且程式短到你可能會懷疑這樣就夠了嗎。</p>
+
+<p>確實就這樣。整段程式大概十行，但這十行是之後每一個 API call 的骨架。看懂這一段，後面所有範例都是它的延伸而已。</p>
+
+<h2>最小可運作的程式</h2>
+
+<p>打開你的編輯器，建立一個叫 <code>hello.py</code> 的檔案，貼進下面這段：</p>
+
+<pre><code>from openai import OpenAI
+
+client = OpenAI()
+
+response = client.responses.create(
+    model="gpt-4o",
+    input="用一句話解釋什麼是 API。",
+)
+
+print(response.output_text)</code></pre>
+
+<p>存檔，回到終端機，確認你還在啟動 <code>.venv</code> 的狀態，然後執行：</p>
+
+<pre><code>python hello.py</code></pre>
+
+<p>如果一切順利，你會看到模型回給你的一句話。每次跑出來的句子都可能不太一樣，這是正常的。</p>
+
+<div class="callout note">
+  <span class="label">Note</span>
+  如果你看到 <code>ModuleNotFoundError: No module named 'openai'</code>，代表你不在虛擬環境裡，或者套件沒裝。回 Chapter 5 確認 <code>source .venv/bin/activate</code> 跟 <code>pip install openai</code> 都做過了。
+</div>
+
+<h2>一行一行讀懂它</h2>
+
+<p>短歸短，這段程式做了四件事。我們慢慢看。</p>
+
+<pre><code>from openai import OpenAI</code></pre>
+
+<p>第一行把 <code>OpenAI</code> 這個類別從 <code>openai</code> 套件匯入進來。這個套件就是我們在 Chapter 5 用 <code>pip install openai</code> 裝的那一個，正式名稱叫做「OpenAI Python SDK」。</p>
+
+<p>SDK 是 Software Development Kit 的縮寫，講白話就是「人家寫好的工具包」。沒有它，我們得自己組 HTTP request、處理 JSON、處理錯誤回應；有它，我們只要呼叫幾個 Python 函式就好。Chapter 4 講過 SDK 背後其實就是在送 HTTP，這裡是第一次親手用到。</p>
+
+<pre><code>client = OpenAI()</code></pre>
+
+<p>第二件事是建立一個「客戶端」物件。你可以把 <code>client</code> 想成一支已經設定好的電話：之後所有要打給 OpenAI 的呼叫，都從這支電話打出去。</p>
+
+<p>這一行為什麼不需要寫 API key？因為 <code>OpenAI()</code> 在建立時會自動去找環境變數 <code>OPENAI_API_KEY</code>。我們在 Chapter 5 已經設好了，所以這裡可以省略。</p>
+
+<div class="callout warning">
+  <span class="label">Warning</span>
+  千萬不要為了方便寫成 <code>OpenAI(api_key="sk-...")</code>，把 key 硬編在程式碼裡。一旦你把程式碼推到 GitHub，這個 key 就等於公開了。OpenAI 的偵測機器人會立刻發信通知你 key 已被撤銷，這還算好的下場——更糟的是被人撿去打到你帳號額度爆掉。
+</div>
+
+<pre><code>response = client.responses.create(
+    model="gpt-4o",
+    input="用一句話解釋什麼是 API。",
+)</code></pre>
+
+<p>這裡是真正的重點。<code>client.responses.create(...)</code> 就是「我要呼叫 Responses API」的意思。Responses API 是 OpenAI 目前推薦給文字生成任務的主要介面，本課所有文字相關的呼叫都會用它。</p>
+
+<p><code>model</code> 告訴 OpenAI「我要用哪個模型」。我們選了 <code>gpt-4o</code>，這是個適合大部分一般任務、品質穩定、價格中等的選擇。</p>
+
+<p><code>input</code> 就是你想問模型的話。可以是一句話、一段文章、甚至一份完整文件，只要不超過模型的長度限制都行。</p>
+
+<div class="callout tip">
+  <span class="label">Tip</span>
+  <code>model</code> 跟 <code>input</code> 是這個 API 最常用的兩個參數，剩下的（<code>instructions</code>、<code>temperature</code>、<code>stream</code>...）都是進階用法，我們會在後面幾章慢慢介紹。剛開始不用想太多。
+</div>
+
+<pre><code>print(response.output_text)</code></pre>
+
+<p>最後一行把回應印出來。注意我們印的是 <code>response.output_text</code>，不是 <code>response</code> 本身。</p>
+
+<p><code>response</code> 是一個 Python 物件，裡面包了一大堆資訊：用了多少 token、用了哪個模型版本、輸出有沒有被內容過濾、產生時間、各種 metadata。但 99% 的時候你只在意「模型講了什麼」，所以 SDK 貼心地提供了 <code>output_text</code> 這個快捷屬性，把純文字直接撈出來。</p>
+
+<p>如果你好奇 <code>response</code> 裡面長什麼樣，可以加一行：</p>
+
+<pre><code>print(response)</code></pre>
+
+<p>跑跑看，會發現是一坨結構化的資料。等到 Chapter 9 處理 Speech to Text、Chapter 13 處理 Structured Output 時，我們會回頭挖這個物件的更多欄位。</p>
+
+<h2>背後發生了什麼</h2>
+
+<p>你按下 Enter 那一刻，下面這串事情大概在一兩秒內全部發生了：</p>
+
+<ol>
+  <li>SDK 把你的 <code>input</code> 跟 <code>model</code> 包成一份 JSON</li>
+  <li>SDK 用你的 API key 當 header，把這份 JSON 透過 HTTPS 送到 <code>api.openai.com</code></li>
+  <li>OpenAI 的伺服器收到、跑模型、產生回應</li>
+  <li>伺服器把結果包成 JSON 回傳</li>
+  <li>SDK 解析 JSON，包成 Python 物件交給你</li>
+</ol>
+
+<p>整個過程是 Chapter 4 講的 HTTP request/response 的具體實現。SDK 把這些細節都藏起來了，但你心裡要有「這就是在送 HTTP」的概念——除錯的時候會很有用。</p>
+
+<h2>常見出錯狀況</h2>
+
+<p>第一次跑通常會卡幾種地方，每個都很典型：</p>
+
+<div class="error-list">
+  <p><strong><code>AuthenticationError: Incorrect API key</code></strong>——多半是 API key 沒設好，或者設了但這個終端機 session 沒讀到。確認你在當前終端機跑 <code>echo $OPENAI_API_KEY</code>（macOS / Linux）或 <code>echo %OPENAI_API_KEY%</code>（Windows）有東西出來。</p>
+
+  <p><strong><code>RateLimitError: 429</code></strong>——你呼叫太快、或者你的 OpenAI 帳號還沒有付款方式、或者額度用完了。打開 OpenAI dashboard 看一下帳號狀態。</p>
+
+  <p><strong><code>NotFoundError: The model 'xxx' does not exist</code></strong>——模型名稱打錯，或者你的帳號沒這個模型的權限。確認你打的是 <code>gpt-4o</code> 而不是 <code>gpt4o</code> 或 <code>GPT-4o</code>。</p>
+
+  <p><strong>程式跑完沒輸出、也沒錯誤訊息</strong>——很可能是你忘了 <code>print(...)</code>。我看過不少學員。</p>
+</div>
+
+<div class="callout note">
+  <span class="label">Note</span>
+  看到陌生的錯誤訊息，先把整段錯誤複製貼到 Google 或 ChatGPT 問。OpenAI 的錯誤訊息其實寫得算清楚，多半英文讀懂大半就知道問題在哪。
+</div>
+
+<h2>小結</h2>
+
+<p>這章我們做了四件事：匯入 SDK、建立 client、呼叫 Responses API、印出結果。短短十行，卻是這整套課程的核心模式——之後不管做摘要、改寫、會議紀錄、語音轉文字，都是這個骨架加上不同參數而已。</p>
+
+<p>接下來的 Chapter 7，我們會開始認真寫 prompt，讓模型的回答從「能用」變成「真的好用」。</p>
+
+<h2>練習</h2>
+
+<ol>
+  <li>把 <code>input</code> 改成「用三個條列說明 OpenAI API 可以做什麼」，觀察模型輸出怎麼變化。</li>
+  <li>加上一個迴圈，連續呼叫五次同一個 prompt，看看每次的回答有沒有不一樣。</li>
+  <li>改成從命令列讀取問題：執行 <code>python hello.py "你的問題"</code>，讓程式把第一個參數當成 <code>input</code>（提示：用 <code>sys.argv</code>）。</li>
+  <li>跑一次後，把 <code>print(response)</code> 加進去，看看完整的回應物件長什麼樣，找出裡面 <code>usage</code> 欄位是什麼。</li>
+</ol>
+
+<hr>
+
+<div class="preview-banner">
+  <strong>預覽：以下兩段「故事插入點」尚未整合進完整章節。</strong>
+  按上一輪討論的方向擬稿——只寫故事段，不展開整章。確認方向後再展開 Ch9 與 Ch10 的全文。
+</div>
+
+<p class="chapter-label">Chapter 9 · 開頭故事段</p>
+<h1 style="font-size:1.4em;border-bottom:none;">為什麼有兩個轉錄模型？</h1>
+
+<p>翻開 OpenAI 文件你會發現，能做語音轉文字的模型有兩個：<code>whisper-1</code> 跟 <code>gpt-4o-transcribe</code>（還有更便宜的 <code>gpt-4o-mini-transcribe</code>）。第一次看到的人通常會問：怎麼選？</p>
+
+<p>故事要從 2022 年講起。那年 OpenAI 開源了一個叫做 Whisper 的語音辨識模型，丟到 Hugging Face 上免費讓人下載。它的特色是「多語言、抗噪、長音檔也能處理」，當時很轟動——因為這種品質的模型，以前要付錢給 Google 或 AWS 才用得到。後來 OpenAI 把它包進 API，命名為 <code>whisper-1</code>，定價也很低，是這幾年很多會議轉錄、podcast 字幕工具的主力。</p>
+
+<p>到了 2024 年底，OpenAI 把更新一代的多模態能力（也就是 GPT-4o 那一套）也訓練成可以聽音檔，推出了 <code>gpt-4o-transcribe</code> 跟更小的 <code>gpt-4o-mini-transcribe</code>。這兩個模型的辨識品質比 <code>whisper-1</code> 更好，特別是在口音重、背景吵、專有名詞多的情境下差距明顯。但代價是，每分鐘的價格也比較高。</p>
+
+<p>怎麼選？務實的答案是：</p>
+
+<ul>
+  <li><strong>練習、便宜、量大、品質可接受就好：</strong>用 <code>whisper-1</code></li>
+  <li><strong>正式產品、會議紀錄、要求準確度：</strong>用 <code>gpt-4o-transcribe</code></li>
+  <li><strong>介於兩者之間：</strong>用 <code>gpt-4o-mini-transcribe</code></li>
+</ul>
+
+<p>本章的範例都會用 <code>gpt-4o-transcribe</code>，因為這套課的主軸是「做一個能用的會議逐字稿工具」，品質優先。但練習裡我們會故意叫你用 <code>whisper-1</code> 跑同一個音檔，親自比較看看，建立自己對「值不值得多付那點錢」的直覺。</p>
+
+<hr>
+
+<p class="chapter-label">Chapter 10 · 開頭故事段</p>
+<h1 style="font-size:1.4em;border-bottom:none;">為什麼語音辨識偏愛 16kHz mono WAV？</h1>
+
+<p>等一下我們要用 <code>ffmpeg</code> 把音檔轉成 <code>16kHz mono WAV</code>。指令長這樣：</p>
+
+<pre><code>ffmpeg -y -i meeting.mp3 -ac 1 -ar 16000 -vn -f wav -acodec pcm_s16le meeting_16k_mono.wav</code></pre>
+
+<p>看起來像咒語。學員的合理疑問是：為什麼是 16kHz？為什麼要 mono？為什麼要 WAV 不繼續用 MP3？這些選擇不是隨便的，背後有具體理由。</p>
+
+<p><strong>為什麼 16kHz？</strong>人類講話的能量主要集中在 300Hz 到 3400Hz——這也是傳統電話只取樣到 8kHz 的原因。語音辨識模型通常用 16kHz 訓練，因為這個取樣率剛好涵蓋了人聲的關鍵頻段，又不會像 44.1kHz（CD 品質）那樣帶進一堆對辨識沒幫助的高頻噪音。把音樂用的 44.1kHz 餵給語音模型，模型不會比較準，反而檔案大了快三倍。</p>
+
+<p><strong>為什麼 mono？</strong>會議錄音很多時候是雙聲道（左右麥克風或立體聲），但語音辨識只在意「有人在講什麼」，不在意「他坐在你左邊還是右邊」。轉成 mono 把兩個聲道合併，檔案小一半、辨識結果幾乎沒差。如果你的錄音是兩個人各佔一個聲道（例如線上會議的單獨軌錄音），那是另一個問題——你應該分軌轉錄，而不是合成 mono。</p>
+
+<p><strong>為什麼 WAV 不用 MP3？</strong>MP3 是有損壓縮，為了讓檔案變小，它丟掉了一些人耳不容易察覺的細節。對聽音樂來說沒差，但對模型來說，那些被丟掉的細節有時候正是它判斷子音、尾音的線索。WAV 配 PCM 是未壓縮的原始音訊，給模型最完整的資料。當然 WAV 檔案會大很多——如果你只是要儲存或傳輸，再壓回 MP3 就好。WAV 的角色是「給模型吃的格式」，不是「給人類儲存的格式」。</p>
+
+<p>所以那串指令在做什麼，重講一次就清楚了：把任意音檔轉成「16kHz 取樣、單聲道、未壓縮的 WAV」——這是給語音模型最理想的食物。</p>
+
+</article>
+
+</body>
+</html>

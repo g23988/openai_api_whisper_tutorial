@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="utf-8">
+<title>Chapter 17. 期末專案：會議逐字稿工具</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<article>
+
+<p class="chapter-label">Chapter 17</p>
+<h1>期末專案：會議逐字稿工具</h1>
+
+<p>恭喜，到這章你已經學完整套課的所有技術元件。最後一章我們把它們全部串起來，做一個<strong>真的可以拿出去用</strong>的會議逐字稿工具。</p>
+
+<h2>專案目標</h2>
+
+<p>做一個工具，輸入一份會議錄音（MP3 / MP4 / M4A 等），自動產出：</p>
+
+<ol>
+  <li><strong>完整逐字稿</strong>（純文字）</li>
+  <li><strong>會議摘要</strong>（100 字內）</li>
+  <li><strong>重點清單</strong>（條列式）</li>
+  <li><strong>Action Items</strong>（每條含負責人、任務、期限）</li>
+  <li><strong>匯出格式</strong>：<code>.txt</code>（純文字）與 <code>.md</code>（Markdown）</li>
+</ol>
+
+<p>支援命令列與 GUI 兩種使用方式。長音檔自動分段。錯誤訊息清楚。可以給沒寫過程式的同事用。</p>
+
+<h2>整體架構</h2>
+
+<p>按照 Chapter 15 的專案結構：</p>
+
+<pre><code>openai-meeting-tool/
+├── README.md
+├── requirements.txt
+├── .env.example
+├── .gitignore
+├── app.py                   # Streamlit GUI 入口
+├── meeting_pipeline.py      # 命令列入口
+├── src/
+│   ├── __init__.py
+│   ├── audio.py             # ffmpeg 轉檔與切段
+│   ├── transcriber.py       # OpenAI 轉錄
+│   ├── summarizer.py        # 摘要 + 結構化會議紀錄
+│   └── exporter.py          # 匯出 txt / md
+└── uploads/、transcripts/   # 執行時自動建立</code></pre>
+
+<p>我們一個檔案一個檔案實作。</p>
+
+<h2><code>src/audio.py</code>：音檔處理</h2>
+
+<pre><code>"""音檔轉檔與切段。"""
+import json
+import subprocess
+from pathlib import Path
+
+
+def get_duration(audio_path: Path) -&gt; float:
+    result = subprocess.run(
+        ["ffprobe", "-v", "error",
+         "-show_format", "-print_format", "json",
+         str(audio_path)],
+        check=True, capture_output=True, text=True,
+    )
+    return float(json.loads(result.stdout)["format"]["duration"])
+
+
+def prepare(input_path: Path, output_path: Path | None = None) -&gt; Path:
+    """轉成 16kHz mono WAV。"""
+    if output_path is None:
+        output_path = input_path.with_name(f"{input_path.stem}_16k.wav")
+    if output_path.exists():
+        return output_path
+    subprocess.run(
+        ["ffmpeg", "-y", "-i", str(input_path),
+         "-ac", "1", "-ar", "16000", "-vn",
+         "-f", "wav", "-acodec", "pcm_s16le",
+         str(output_path)],
+        check=True, capture_output=True,
+    )
+    return output_path
+
+
+def split(audio_path: Path, work_dir: Path, segment_seconds: int = 600) -&gt; list[Path]:
+    """切成多段 WAV。"""
+    work_dir.mkdir(parents=True, exist_ok=True)
+    pattern = work_dir / "seg_%03d.wav"
+    subprocess.run(
+        ["ffmpeg", "-y", "-i", str(audio_path),
+         "-f", "segment", "-segment_time", str(segment_seconds),
+         "-reset_timestamps", "1", "-c", "copy",
+         str(pattern)],
+        check=True, capture_output=True,
+    )
+    return sorted(work_dir.glob("seg_*.wav"))</code></pre>
+
+<h2><code>src/transcriber.py</code>：轉錄</h2>
+
+<pre><code>"""OpenAI 轉錄與分段處理。"""
+import sys
+import time
+from pathlib import Path
+
+from openai import OpenAI, APIConnectionError, RateLimitError
+
+
+def transcribe_one(client: OpenAI, audio_path: Path,
+                   model: str = "gpt-4o-transcribe",
+                   language: str = "zh") -&gt; str:
+    for attempt in range(1, 4):
+        try:
+            with open(audio_path, "rb") as f:
+                result = client.audio.transcriptions.create(
+                    model=model, file=f, language=language,
+                )
+            return result.text
+        except (APIConnectionError, RateLimitError) as e:
+            if attempt == 3:
+                raise
+            wait = 2 ** attempt
+            print(f"  失敗：{e}，{wait}s 後重試...", file=sys.stderr)
+            time.sleep(wait)
+    return ""
+
+
+def transcribe_segments(client: OpenAI, segments: list[Path],
+                        cache_dir: Path,
+                        model: str = "gpt-4o-transcribe",
+                        language: str = "zh",
+                        progress=None) -&gt; str:
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    texts = []
+    total = len(segments)
+    for i, seg in enumerate(segments, start=1):
+        cache_file = cache_dir / f"{seg.stem}.txt"
+        if cache_file.exists():
+            text = cache_file.read_text(encoding="utf-8")
+        else:
+            if progress:
+                progress(i, total, f"轉錄 {seg.name}")
+            text = transcribe_one(client, seg, model, language)
+            cache_file.write_text(text, encoding="utf-8")
+        texts.append(text)
+    return "\n\n".join(t.strip() for t in texts if t.strip())</code></pre>
+
+<h2><code>src/summarizer.py</code>：摘要與結構化</h2>
+
+<pre><code>"""摘要與結構化會議紀錄。"""
+from openai import OpenAI
+from pydantic import BaseModel, Field
+
+
+class ActionItem(BaseModel):
+    owner: str = Field(description="負責人姓名")
+    task: str = Field(description="任務內容")
+    due_date: str = Field(description="期限，沒提到留空字串")
+
+
+class MeetingNote(BaseModel):
+    title: str = Field(description="會議主題，10 字內")
+    summary: str = Field(description="摘要，100 字內")
+    key_points: list[str] = Field(description="重點清單")
+    action_items: list[ActionItem] = Field(description="行動項清單")
+
+
+INSTRUCTIONS = """
+你會收到一份會議逐字稿。請整理成結構化的會議紀錄。
+
+規則：
+1. 標題簡短，反映會議主題
+2. 摘要 100 字內，講清楚會議目的與結論
+3. 重點清單列出本次討論的關鍵主題（5-8 條）
+4. Action items 每條要有：負責人、任務、期限
+5. 不要編造資訊，沒提到就留空或空 list
+6. 用繁體中文
+""".strip()
+
+
+def summarize_meeting(client: OpenAI, transcript: str,
+                      model: str = "gpt-4o") -&gt; MeetingNote:
+    response = client.responses.parse(
+        model=model,
+        instructions=INSTRUCTIONS,
+        input=transcript,
+        response_format=MeetingNote,
+        temperature=0.3,
+    )
+    return response.output_parsed</code></pre>
+
+<h2><code>src/exporter.py</code>：匯出</h2>
+
+<pre><code>"""匯出 txt / md。"""
+from pathlib import Path
+from src.summarizer import MeetingNote
+
+
+def to_text(transcript: str, note: MeetingNote) -&gt; str:
+    lines = [
+        f"會議：{note.title}",
+        "",
+        "摘要：",
+        note.summary,
+        "",
+        "重點：",
+    ]
+    lines.extend(f"- {p}" for p in note.key_points)
+    lines.append("")
+    lines.append("Action Items:")
+    for a in note.action_items:
+        due = f"（{a.due_date}）" if a.due_date else ""
+        lines.append(f"- {a.owner}：{a.task}{due}")
+    lines.extend(["", "==== 完整逐字稿 ====", "", transcript])
+    return "\n".join(lines)
+
+
+def to_markdown(transcript: str, note: MeetingNote) -&gt; str:
+    lines = [
+        f"# {note.title}",
+        "",
+        "## 摘要",
+        "",
+        note.summary,
+        "",
+        "## 重點",
+        "",
+    ]
+    lines.extend(f"- {p}" for p in note.key_points)
+    lines.extend(["", "## Action Items", ""])
+    if note.action_items:
+        lines.append("| 負責人 | 任務 | 期限 |")
+        lines.append("|---|---|---|")
+        for a in note.action_items:
+            lines.append(f"| {a.owner} | {a.task} | {a.due_date or '-'} |")
+    else:
+        lines.append("（無）")
+    lines.extend(["", "## 完整逐字稿", "", transcript])
+    return "\n".join(lines)
+
+
+def export(output_dir: Path, base_name: str, transcript: str,
+           note: MeetingNote) -&gt; tuple[Path, Path]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    txt_path = output_dir / f"{base_name}.txt"
+    md_path = output_dir / f"{base_name}.md"
+    txt_path.write_text(to_text(transcript, note), encoding="utf-8")
+    md_path.write_text(to_markdown(transcript, note), encoding="utf-8")
+    return txt_path, md_path</code></pre>
+
+<h2><code>meeting_pipeline.py</code>：命令列入口</h2>
+
+<pre><code>"""命令列：完整跑一次。"""
+import argparse
+import sys
+from pathlib import Path
+
+from dotenv import load_dotenv
+from openai import OpenAI
+
+from src import audio, transcriber, summarizer, exporter
+
+
+def main() -&gt; None:
+    parser = argparse.ArgumentParser(description="會議逐字稿工具")
+    parser.add_argument("input", help="音檔路徑")
+    parser.add_argument("-o", "--output-dir", default="transcripts")
+    parser.add_argument("-m", "--transcribe-model",
+                        default="gpt-4o-transcribe",
+                        choices=["gpt-4o-transcribe", "gpt-4o-mini-transcribe", "whisper-1"])
+    parser.add_argument("--summary-model", default="gpt-4o",
+                        choices=["gpt-4o", "gpt-4o-mini"])
+    parser.add_argument("-s", "--segment-seconds", type=int, default=600)
+    args = parser.parse_args()
+
+    load_dotenv()
+    client = OpenAI(timeout=60.0)
+
+    input_path = Path(args.input)
+    if not input_path.exists():
+        print(f"找不到 {input_path}", file=sys.stderr); sys.exit(1)
+
+    work_dir = input_path.with_suffix(".work")
+    cache_dir = work_dir / "cache"
+
+    print("[1/4] 轉成 16kHz mono WAV...", file=sys.stderr)
+    prepared = audio.prepare(input_path)
+
+    print("[2/4] 切段...", file=sys.stderr)
+    segments = audio.split(prepared, work_dir, args.segment_seconds)
+    print(f"      {len(segments)} 段", file=sys.stderr)
+
+    print("[3/4] 轉錄...", file=sys.stderr)
+    def progress(i, total, msg):
+        print(f"      [{i}/{total}] {msg}", file=sys.stderr)
+    transcript = transcriber.transcribe_segments(
+        client, segments, cache_dir,
+        model=args.transcribe_model, progress=progress,
+    )
+
+    print("[4/4] 產生會議紀錄...", file=sys.stderr)
+    note = summarizer.summarize_meeting(client, transcript, model=args.summary_model)
+
+    output_dir = Path(args.output_dir)
+    txt_path, md_path = exporter.export(
+        output_dir, input_path.stem, transcript, note,
+    )
+    print(f"\n完成。輸出：")
+    print(f"  {txt_path}")
+    print(f"  {md_path}")
+
+
+if __name__ == "__main__":
+    main()</code></pre>
+
+<h2><code>app.py</code>：Streamlit GUI 入口</h2>
+
+<pre><code>"""Streamlit GUI：完整工具。"""
+import streamlit as st
+from pathlib import Path
+from openai import OpenAI
+
+from src import audio, transcriber, summarizer, exporter
+
+
+st.set_page_config(page_title="會議逐字稿工具", layout="wide")
+st.title("會議逐字稿工具")
+
+with st.sidebar:
+    st.header("設定")
+    api_key = st.text_input("OpenAI API Key", type="password",
+                            help="只在這次 session 使用，不會儲存")
+    transcribe_model = st.selectbox(
+        "轉錄模型",
+        ["gpt-4o-transcribe", "gpt-4o-mini-transcribe", "whisper-1"],
+    )
+    summary_model = st.selectbox("摘要模型", ["gpt-4o", "gpt-4o-mini"])
+    segment_seconds = st.slider("切段秒數", 120, 900, 600, step=60)
+
+
+uploaded = st.file_uploader(
+    "上傳會議錄音（mp3 / mp4 / wav / m4a 等）",
+    type=["mp3", "mp4", "m4a", "wav", "webm", "ogg", "flac"],
+)
+
+if uploaded and api_key and st.button("開始", type="primary"):
+    upload_dir = Path("uploads")
+    upload_dir.mkdir(exist_ok=True)
+    input_path = upload_dir / uploaded.name
+    input_path.write_bytes(uploaded.getbuffer())
+
+    client = OpenAI(api_key=api_key, timeout=60.0)
+    work_dir = input_path.with_suffix(".work")
+    cache_dir = work_dir / "cache"
+
+    try:
+        with st.status("處理中...", expanded=True) as status:
+            st.write("轉成 16kHz mono WAV...")
+            prepared = audio.prepare(input_path)
+
+            st.write("切段...")
+            segments = audio.split(prepared, work_dir, segment_seconds)
+            st.write(f"切成 {len(segments)} 段")
+
+            st.write("逐段轉錄...")
+            transcript = transcriber.transcribe_segments(
+                client, segments, cache_dir,
+                model=transcribe_model,
+            )
+
+            st.write("產生會議紀錄...")
+            note = summarizer.summarize_meeting(client, transcript,
+                                                 model=summary_model)
+
+            status.update(label="完成", state="complete", expanded=False)
+
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            st.subheader(note.title)
+            st.markdown("**摘要**")
+            st.write(note.summary)
+
+            st.markdown("**重點**")
+            for p in note.key_points:
+                st.write(f"- {p}")
+
+            st.markdown("**Action Items**")
+            for a in note.action_items:
+                due = f"（{a.due_date}）" if a.due_date else ""
+                st.write(f"- {a.owner}：{a.task}{due}")
+
+        with col2:
+            st.subheader("完整逐字稿")
+            st.text_area("", transcript, height=600, label_visibility="collapsed")
+
+        st.divider()
+        txt_content = exporter.to_text(transcript, note)
+        md_content = exporter.to_markdown(transcript, note)
+        c1, c2 = st.columns(2)
+        c1.download_button("下載 .txt", data=txt_content,
+                           file_name=f"{input_path.stem}.txt",
+                           mime="text/plain")
+        c2.download_button("下載 .md", data=md_content,
+                           file_name=f"{input_path.stem}.md",
+                           mime="text/markdown")
+    except Exception as e:
+        st.error(f"處理失敗：{type(e).__name__}: {e}")
+
+elif not api_key:
+    st.info("請在側邊欄輸入 OpenAI API Key")</code></pre>
+
+<h2>評量標準</h2>
+
+<p>期末專案完成的標準：</p>
+
+<ul>
+  <li>能在本機跑 <code>python meeting_pipeline.py xxx.mp3</code> 完整跑完</li>
+  <li>能在本機跑 <code>streamlit run app.py</code> 並完整操作</li>
+  <li>API key 不寫死在程式碼，從 <code>.env</code> 或 GUI 輸入</li>
+  <li>處理失敗會印出清楚錯誤訊息，不只是 Python traceback</li>
+  <li><code>.gitignore</code> 設定正確，<code>git status</code> 看不到 <code>.env</code> 跟 <code>.venv/</code></li>
+  <li>有可讀的 README，覆蓋安裝、使用、常見錯誤</li>
+  <li>至少跑過一個 30 分鐘以上的真實音檔，輸出可讀</li>
+</ul>
+
+<h2>可以延伸的方向</h2>
+
+<p>把這個專案做完後，可以再延伸：</p>
+
+<ul>
+  <li><strong>多人對話辨識（speaker diarization）</strong>：用 <code>pyannote.audio</code> 之類的工具標記「誰在講話」</li>
+  <li><strong>即時轉錄</strong>：用 OpenAI 的 Realtime API，邊講邊轉</li>
+  <li><strong>整合到 Zoom / Google Meet</strong>：自動抓會議錄音，跑完寄 email</li>
+  <li><strong>多語言對齊</strong>：原文 + 翻譯逐字稿並排</li>
+  <li><strong>跑在自己的伺服器</strong>：Streamlit Cloud / Railway / fly.io 部署</li>
+  <li><strong>加上權限管理</strong>：多使用者各自 key、各自空間</li>
+  <li><strong>整合到 Notion / Linear</strong>：自動把 action items 變成 ticket</li>
+</ul>
+
+<h2>全課回顧</h2>
+
+<p>從 Chapter 0 到這裡，我們走過：</p>
+
+<ul>
+  <li><strong>環境與基礎</strong>（Ch0-2）：終端機、Python 最小子集、檔案與錯誤處理</li>
+  <li><strong>API 概念</strong>（Ch3-4）：什麼是 API、HTTP、JSON</li>
+  <li><strong>第一個工具</strong>（Ch5-8）：環境設定、第一個 API call、Prompt、命令列工具</li>
+  <li><strong>音訊處理</strong>（Ch9-11）：語音轉文字、ffmpeg、長音檔切段</li>
+  <li><strong>產品化</strong>（Ch12-14）：GUI、結構化輸出、Streaming</li>
+  <li><strong>交付</strong>（Ch15-17）：專案結構、安全成本、期末整合</li>
+</ul>
+
+<p><strong>整套技能其實是「做工具」的工程能力</strong>。模型只是其中一個元件，整個流程從「使用者需求 → 介面 → 處理邏輯 → 模型 → 輸出 → 安全成本」全部都要顧到。</p>
+
+<p>恭喜你完成這套課。現在你會的這套東西，已經可以做出真實有用的小工具。<strong>接下來最重要的事：找一個自己會用、會痛的場景，把它做出來</strong>。聽起來很普通，但這是把「學過」變成「會用」的唯一方式。</p>
+
+<h2>練習</h2>
+
+<ol>
+  <li>把這個期末專案完整實作一次，用一場真實的會議錄音跑通流程。</li>
+  <li>改一個你會用的場景：例如 podcast 字幕、訪談整理、客戶通話分析。看看本架構能不能直接套用、要改哪裡。</li>
+  <li>把成品丟到 GitHub（記得先檢查 <code>.gitignore</code>），寫一份完整 README，給朋友 clone 試用。</li>
+  <li>估算一個月你會跑多少次、總成本多少。如果有意義，到 OpenAI dashboard 設一個對應的 Monthly budget。</li>
+</ol>
+
+</article>
+
+</body>
+</html>

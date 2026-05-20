@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="utf-8">
+<title>Chapter 15. 專案結構與 README</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<article>
+
+<p class="chapter-label">Chapter 15</p>
+<h1>專案結構與 README</h1>
+
+<p>到目前為止，我們的程式檔案越來越多：<code>summarize.py</code>、<code>transcribe.py</code>、<code>transcribe_long.py</code>、<code>app.py</code>...全部塞在一個資料夾。</p>
+
+<p>這章我們把它們整理成一個<strong>像樣的專案</strong>——有結構、有 README、有 <code>.gitignore</code>、別人 clone 下來看得懂、跑得起來。</p>
+
+<p>「能跑」跟「可以交付」中間，差的就是這章。</p>
+
+<h2>為什麼專案結構重要</h2>
+
+<p>想像兩個情境：</p>
+
+<p><strong>A. 一個資料夾裡塞 12 個 <code>.py</code> 檔，沒有 README、沒有 requirements.txt、沒有說明。</strong> 你三個月後回頭看，得花半小時才能搞清楚哪個檔做什麼、要怎麼跑。同事更不用說。</p>
+
+<p><strong>B. 有清楚的資料夾結構、README 寫清楚用法、<code>.gitignore</code> 保護祕密。</strong> 你三個月後一打開就懂、同事 clone 下來十分鐘就跑起來。</p>
+
+<p><strong>這個差別就是「工具」跟「玩具」的差別</strong>。</p>
+
+<div class="callout tip">
+  <span class="label">Tip</span>
+  軟體工程界有個觀察叫「<strong>讀程式比寫程式更頻繁</strong>」——你寫一段程式碼可能花 1 小時，但之後讀它（除錯、修改、解釋給別人聽）會花 10 小時。<strong>專案結構與 README 是給未來的自己跟別人寫的「使用說明」</strong>。一開始多花 30 分鐘做好，後面省下幾小時。
+</div>
+
+<h2>推薦的專案結構</h2>
+
+<p>對本課這種規模的小工具，這個結構夠用：</p>
+
+<pre><code>openai-meeting-tool/
+├── README.md
+├── requirements.txt
+├── .env.example
+├── .gitignore
+├── app.py                 # Streamlit GUI 入口
+├── transcribe.py          # 命令列轉錄工具
+├── summarize.py           # 命令列摘要工具
+├── src/
+│   ├── __init__.py
+│   ├── audio.py           # 音檔處理：轉檔、切段
+│   ├── transcriber.py     # 轉錄核心邏輯
+│   └── summarizer.py      # 摘要核心邏輯
+├── uploads/               # 使用者上傳的檔案（gitignore）
+├── transcripts/           # 輸出的逐字稿（gitignore）
+└── tests/                 # 測試（選用）
+    └── test_audio.py</code></pre>
+
+<p>幾個原則：</p>
+
+<ul>
+  <li><strong>入口檔放最外層</strong>：<code>app.py</code>、<code>transcribe.py</code> 一看就知道是執行用的</li>
+  <li><strong>核心邏輯放 <code>src/</code></strong>：可被其他檔案匯入</li>
+  <li><strong>輸入/輸出資料分開</strong>：<code>uploads/</code>（進）、<code>transcripts/</code>（出）</li>
+  <li><strong>設定檔在最外層</strong>：README、requirements、env 範例</li>
+</ul>
+
+<h2>src/ 與模組化</h2>
+
+<p>把「能單獨使用的邏輯」抽到 <code>src/</code> 模組裡。例如 <code>src/transcriber.py</code>：</p>
+
+<pre><code># src/transcriber.py
+from pathlib import Path
+from openai import OpenAI
+
+def transcribe(
+    audio_path: Path,
+    client: OpenAI,
+    model: str = "gpt-4o-transcribe",
+    language: str = "zh",
+) -&gt; str:
+    with open(audio_path, "rb") as f:
+        result = client.audio.transcriptions.create(
+            model=model,
+            file=f,
+            language=language,
+        )
+    return result.text</code></pre>
+
+<p>然後在 <code>transcribe.py</code>（命令列入口）跟 <code>app.py</code>（GUI 入口）都可以匯入這個函式：</p>
+
+<pre><code># transcribe.py
+from src.transcriber import transcribe</code></pre>
+
+<p><strong>好處：邏輯只寫一次</strong>。如果哪天 OpenAI 改了 API，你只改一個檔案，兩個工具都更新。</p>
+
+<div class="callout note">
+  <span class="label">Note</span>
+  <code>src/</code> 裡的 <code>__init__.py</code> 可以是空檔案，它的存在告訴 Python「這個資料夾是個模組」。在新版 Python（3.3+）其實沒它也能 import，但留著比較不會有意外。
+</div>
+
+<h2>README.md：給人讀的入口</h2>
+
+<p>README 是專案的門面。<strong>沒有 README 的開源專案沒人會用</strong>。最起碼要有這幾段：</p>
+
+<pre><code># 會議逐字稿工具
+
+把會議錄音變成可讀的逐字稿與會議紀錄。
+
+## 功能
+
+- 上傳 MP3 / WAV / MP4，自動轉成文字
+- 長音檔自動分段處理（支援 1 小時以上錄音）
+- 自動產生摘要與 Action Items
+- 圖形介面（Streamlit）與命令列兩種使用方式
+
+## 環境需求
+
+- Python 3.10+
+- ffmpeg（macOS: brew install ffmpeg）
+- OpenAI API key
+
+## 安裝
+
+git clone https://github.com/yourname/openai-meeting-tool.git
+cd openai-meeting-tool
+python3 -m venv .venv
+source .venv/bin/activate   # macOS / Linux
+pip install -r requirements.txt
+cp .env.example .env
+# 編輯 .env，填入你的 OPENAI_API_KEY
+
+## 使用
+
+### GUI 版（推薦）
+
+streamlit run app.py
+
+瀏覽器會自動打開 http://localhost:8501
+
+### 命令列版
+
+# 短音檔（<25MB）
+python transcribe.py meeting.mp3
+
+# 長音檔自動分段
+python transcribe.py meeting.mp3 -o transcript.txt
+
+## 設定
+
+.env 檔案內容：
+
+OPENAI_API_KEY=sk-proj-...
+
+## 常見問題
+
+**Q：ffmpeg not found**
+A：請先用 brew install ffmpeg（macOS）或從 ffmpeg.org 下載（Windows）
+
+**Q：檔案太大**
+A：使用 transcribe.py 而非 GUI 版，它支援自動分段
+
+## 授權
+
+MIT</code></pre>
+
+<p>幾個原則：</p>
+
+<ul>
+  <li><strong>第一段用一句話描述工具做什麼</strong>（不是 marketing 話）</li>
+  <li><strong>環境需求要明確</strong>（Python 版本、外部工具）</li>
+  <li><strong>安裝步驟要可複製貼上</strong>——別人不用思考就能照做</li>
+  <li><strong>使用範例要有具體 command</strong></li>
+</ul>
+
+<div class="callout tip">
+  <span class="label">Tip</span>
+  寫 README 時的一個心法：<strong>假設讀者是「會打開終端機、會 git clone、但不知道這個專案在幹嘛的人」</strong>。比這個熟練的，跳過幾段沒關係；比這個生疏的，可能本來就不是你的目標受眾。寫得太簡單浪費自己時間，寫得太進階沒人懂。
+</div>
+
+<h2>requirements.txt：套件版本鎖定</h2>
+
+<p>每次裝完新套件就更新：</p>
+
+<pre><code>pip freeze &gt; requirements.txt</code></pre>
+
+<p>打開來看，你會看到所有套件的精確版本：</p>
+
+<pre><code>openai==1.50.0
+python-dotenv==1.0.0
+streamlit==1.32.0
+pydantic==2.6.0</code></pre>
+
+<p><strong>為什麼要鎖版本？</strong> 因為三個月後 OpenAI SDK 出 2.0、改了 API，新人裝起來程式直接壞。鎖版本確保<strong>任何時候 clone 下來都跑得起來</strong>。</p>
+
+<div class="callout warning">
+  <span class="label">Warning</span>
+  <code>pip freeze</code> 會記錄<strong>所有</strong>安裝的套件，包括你 pip install 套件 A 時自動裝的相依套件 B、C、D。這完整但有點臃腫。如果你想更乾淨，可以用 <code>pip-tools</code>（<code>pip install pip-tools</code>，然後寫 <code>requirements.in</code> 只列直接相依，自動產生鎖定的 <code>requirements.txt</code>）。對本課這種規模，直接 <code>pip freeze</code> 完全夠用。
+</div>
+
+<h2>.env.example：範本但不含祕密</h2>
+
+<p><code>.env</code> 包含你的真實 key，<strong>永遠不要進 git</strong>。但別人 clone 你的專案後，要知道「需要設哪些環境變數」。</p>
+
+<p>解法：建立 <code>.env.example</code>，裡面寫變數名稱但不寫值：</p>
+
+<pre><code># 把這個檔案複製成 .env，填入實際值
+
+OPENAI_API_KEY=sk-proj-your-key-here</code></pre>
+
+<p>README 引導使用者：</p>
+
+<pre><code>cp .env.example .env
+# 編輯 .env 填入你的 key</code></pre>
+
+<p><code>.env.example</code> 可以進 git（沒有祕密），<code>.env</code> 不能。</p>
+
+<h2>.gitignore：保護祕密與雜物</h2>
+
+<p>放在專案根目錄：</p>
+
+<pre><code># Python
+__pycache__/
+*.pyc
+*.pyo
+.Python
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Secrets
+.env
+*.key
+*.pem
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Project specific
+uploads/
+transcripts/
+*.work/
+
+# Cache & temp
+.pytest_cache/
+.cache/
+*.log</code></pre>
+
+<p><code>.gitignore</code> 必須在第一次 commit 之前就建立——一旦 <code>.env</code> 進了 git 歷史，後面刪也刪不掉（git 永遠記得）。</p>
+
+<div class="callout warning">
+  <span class="label">Warning</span>
+  如果你已經不小心把 <code>.env</code> commit 進去過，<strong>立刻把那把 key 撤銷</strong>（OpenAI dashboard 上 revoke），然後重發一把新的。改 .gitignore 沒用——歷史已經在 GitHub 上了，世界各地的爬蟲都看得到。
+</div>
+
+<h2>版本控制：第一次 commit</h2>
+
+<p>建立完所有檔案，第一次 commit：</p>
+
+<pre><code>git init
+git add .
+git status   # 確認沒有 .env、.venv、uploads/ 出現
+git commit -m "Initial commit"</code></pre>
+
+<p><code>git status</code> 那一步很重要——<strong>確認 .gitignore 真的有作用</strong>。如果你看到 <code>.env</code> 在「Changes to be committed」裡面，停下來！檢查 .gitignore 有沒有寫對。</p>
+
+<p>之後就是正常 git 流程：</p>
+
+<pre><code>git add transcribe.py
+git commit -m "Add language detection"
+git push origin main</code></pre>
+
+<h2>把舊章節的程式整合進來</h2>
+
+<p>現在我們把這套課做過的工具整合到推薦的結構裡：</p>
+
+<pre><code>openai-meeting-tool/
+├── README.md
+├── requirements.txt
+├── .env.example
+├── .gitignore
+├── app.py                 # Chapter 12 的 Streamlit GUI
+├── transcribe.py          # Chapter 9 + 11 的命令列工具（含分段）
+├── summarize.py           # Chapter 8 的摘要工具
+├── meeting_notes.py       # Chapter 13 的結構化會議紀錄
+└── src/
+    ├── __init__.py
+    ├── audio.py           # Chapter 10 + 11 的 ffmpeg 與切段
+    ├── transcriber.py     # Chapter 9 的 OpenAI 轉錄
+    └── summarizer.py      # Chapter 8 + 13 的摘要與結構化</code></pre>
+
+<p>把零散的程式碼搬進這個結構，每個檔案各司其職。Chapter 17 的期末專案就是用這個結構做出完整工具。</p>
+
+<h2>小結</h2>
+
+<ol>
+  <li><strong>入口檔放外層，核心邏輯放 <code>src/</code></strong>——模組化避免重複</li>
+  <li><strong>README.md 要有：簡介、需求、安裝、使用、設定、FAQ</strong></li>
+  <li><strong><code>requirements.txt</code> 鎖版本</strong>——確保跨機器跑得起來</li>
+  <li><strong><code>.env.example</code> 留範本，<code>.env</code> 進 .gitignore</strong>——分開「結構」跟「祕密」</li>
+  <li><strong><code>.gitignore</code> 在第一次 commit 之前建好</strong>——歷史是永久的</li>
+  <li><strong>第一次 commit 前跑 <code>git status</code></strong>——確認沒有意外洩漏</li>
+</ol>
+
+<p>下一章我們深入「安全、成本、錯誤排除」——確保你的工具在真實使用時不會被人偷 key、不會花爆錢、不會莫名其妙崩潰。</p>
+
+<h2>練習</h2>
+
+<ol>
+  <li>把本課做過的工具按照本章的結構整理到一個專案資料夾。</li>
+  <li>寫一份 README，假裝你要把這個工具給「會打開終端機但沒寫過 OpenAI API」的同事用。</li>
+  <li>跑 <code>git init</code>、<code>git add .</code>、<code>git status</code>，確認 <code>.env</code> 跟 <code>.venv/</code> 都被 ignore 了。</li>
+  <li>在 README 加一段「常見錯誤排除」，至少寫三個你自己這幾章踩過的坑。</li>
+</ol>
+
+</article>
+
+</body>
+</html>

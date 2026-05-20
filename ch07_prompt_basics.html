@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="utf-8">
+<title>Chapter 7. Prompt 基礎</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<article>
+
+<p class="chapter-label">Chapter 7</p>
+<h1>Prompt 基礎</h1>
+
+<p>上一章我們打通了第一通 API call。短短十行，模型有回應。但你大概很快就會發現一件事：<strong>同樣一個問題，問十次有十種答案</strong>——有時候是條列、有時候是長篇大論、有時候很官腔、有時候很生硬。</p>
+
+<p>這不是模型壞了，是因為<strong>你還沒學會跟模型講話</strong>。</p>
+
+<p>這章我們把「Prompt」這件事好好講清楚。學完之後，你會發現「同一個模型」在你手上跟在別人手上產出的品質可以差很大——差別不在模型，在你怎麼問。</p>
+
+<h2>Prompt 是什麼</h2>
+
+<p>Prompt 就是你給模型的指示。最直觀的理解是：</p>
+
+<pre><code>response = client.responses.create(
+    model="gpt-4o",
+    input="幫我改寫這段話",
+)</code></pre>
+
+<p>這個 <code>input</code> 就是 prompt。</p>
+
+<p>但實際上 OpenAI Responses API 允許你分開「<strong>告訴模型它是誰</strong>」（<code>instructions</code>）跟「<strong>這次的具體輸入</strong>」（<code>input</code>）：</p>
+
+<pre><code>response = client.responses.create(
+    model="gpt-4o",
+    instructions="你是一位專業的中文編輯，請保留原意並讓文字更清楚。",
+    input="今天那個東西可能有點問題我們晚點再看。",
+)</code></pre>
+
+<p>兩個放在一起就是這次呼叫的完整 prompt。<strong>這個區分很重要</strong>——<code>instructions</code> 設定「角色與規則」，<code>input</code> 給「這次的具體素材」。如果你做一個改寫工具會反覆呼叫 100 次，<code>instructions</code> 是固定的，<code>input</code> 每次不同。</p>
+
+<div class="callout tip">
+  <span class="label">Tip</span>
+  "Prompt engineering" 這個詞是 2020 年 GPT-3 發布之後才大規模出現的。在那之前模型不夠強，輸入只是「給它一段文字看它能不能接得下去」；GPT-3 突然好到「你告訴它要做什麼，它就做」，但同時「怎麼告訴它」變成關鍵技能。一兩年內這變成一個獨立的職位類別。今天「prompt engineer」這個職位有點退燒——因為新一代模型對細節越來越不敏感、容錯越來越高——但<strong>「會講話」依然是用 API 最重要的單一技能</strong>。
+</div>
+
+<h2>從爛 prompt 到好 prompt</h2>
+
+<p>我們用一個例子貫穿這節：你想做一個「把口語轉成正式 email」的工具。</p>
+
+<p><strong>第一版 prompt（很爛）：</strong></p>
+
+<pre><code>input="幫我寫個 email"</code></pre>
+
+<p>模型不知道要寫什麼、給誰、什麼風格。它會猜——而它的猜往往不是你想要的。</p>
+
+<p><strong>第二版（好一點）：</strong></p>
+
+<pre><code>input="幫我把這段話改成 email：明天客戶會議延後到下午三點"</code></pre>
+
+<p>模型現在知道任務了：改寫成 email。但它仍要猜：給誰寄？正式還是輕鬆？要不要署名？</p>
+
+<p><strong>第三版（清楚很多）：</strong></p>
+
+<pre><code>instructions="""
+你是一位協助使用者撰寫商務 email 的助手。
+規則：
+1. 使用繁體中文
+2. 語氣專業但不僵硬
+3. 開頭加上適當問候，結尾用「祝 順心」
+4. 不要加任何不在原文裡的資訊
+""".strip()
+
+input="把這段口語改成 email，收件人是「林經理」，內容：明天客戶會議延後到下午三點"</code></pre>
+
+<p>現在模型有完整資訊：角色、語言、語氣、格式規則、不能編造、收件人、內容主旨。輸出會穩定多了。</p>
+
+<h2>好 prompt 的四個元素</h2>
+
+<p>把上面這個例子拆開，一個好 prompt 通常包含四個元素：</p>
+
+<p><strong>1. 任務（Task）</strong>：你要它做什麼？「改寫」「翻譯」「摘要」「分類」要明確。</p>
+
+<p><strong>2. 背景（Context）</strong>：補充資訊。誰會看、用在哪、有什麼限制。</p>
+
+<p><strong>3. 限制（Constraints）</strong>：明確的「不要做什麼」。例如「不要編造資訊」「字數不超過 200 字」「不要用 emoji」。</p>
+
+<p><strong>4. 格式（Format）</strong>：輸出長什麼樣。條列、段落、JSON、表格、Markdown。</p>
+
+<p>不一定每次都四個都要寫——簡單任務一句話就夠。但<strong>任務必明確</strong>，這是最低標。</p>
+
+<div class="callout note">
+  <span class="label">Note</span>
+  你可能會發現一個有趣的事：寫 prompt 跟「給新同事下指示」非常像。差勁的 prompt（「幫我搞一下」）就像差勁的主管下單——對方只能猜你的意思。好的 prompt 把任務、限制、格式都講清楚，就像會帶人的主管。這個技能很值得你刻意練習，因為<strong>好的 prompt 工程跟好的人類溝通是同一套能力</strong>。
+</div>
+
+<h2>角色設定的細節</h2>
+
+<p><code>instructions</code> 裡常會設定一個「角色」：</p>
+
+<pre><code>instructions="你是一位專業的中文編輯..."
+instructions="你是一位資深的程式碼審查員..."
+instructions="你是一位用簡單語言解釋複雜概念的老師..."</code></pre>
+
+<p>這招很有效，但也容易被誤用。幾個原則：</p>
+
+<p><strong>好的角色設定</strong>會限縮模型的行為範圍：</p>
+
+<pre><code>instructions="""
+你是一位專業的中文編輯，專長是讓口語化文字變得清晰有條理。
+你只負責改寫，不評論、不解釋、不提建議。
+直接輸出改寫後的文字，不要說「以下是改寫」這類前綴。
+""".strip()</code></pre>
+
+<p><strong>沒用的角色設定</strong>只是裝飾：</p>
+
+<pre><code>instructions="你是一位非常聰明的 AI 助手，會盡力幫助使用者。"</code></pre>
+
+<p>這種寫法等於沒寫——模型本來就會盡力幫你。<strong>角色設定的價值是「定義你不要什麼」</strong>，而不是「定義你要什麼」。</p>
+
+<h2>指定輸出格式</h2>
+
+<p>如果你寫的是「會被另一個程式讀」的工具，<strong>輸出格式比內容更重要</strong>。最常見的兩個技巧：</p>
+
+<p><strong>1. 用範例（few-shot）：</strong></p>
+
+<pre><code>instructions="""
+判斷使用者輸入的情緒，輸出格式：
+
+情緒：[正面 / 負面 / 中性]
+信心：[0-100]
+關鍵字：[最多三個]
+
+範例：
+輸入：今天的會議真的太棒了，大家都很投入
+情緒：正面
+信心：90
+關鍵字：會議、投入、滿意
+""".strip()
+
+input="這個產品爛透了，根本不能用"</code></pre>
+
+<p>這比文字描述「請輸出包含三個欄位的文字」有效十倍。</p>
+
+<p><strong>2. 用結構化輸出：</strong></p>
+
+<p>如果你真的需要乾淨的 JSON，<strong>不要靠 prompt 寫「請輸出 JSON」</strong>——那是不可靠的。本課 Chapter 13 會教 OpenAI 的 <code>response_format</code> 機制，可以強制模型輸出符合特定 schema 的 JSON。</p>
+
+<div class="callout warning">
+  <span class="label">Warning</span>
+  一個很常見的錯誤：在 prompt 裡寫「請輸出 JSON 格式：<code>{"sentiment": "...", "score": ...}</code>」，然後試圖用 <code>json.loads()</code> 解析回傳。<strong>這在 95% 的情況會成功，但剩下 5% 會炸</strong>——模型偶爾會在 JSON 前後加「以下是分析結果」之類的話。要嘛接受這個失敗率、寫 <code>try/except</code>，要嘛用 Chapter 13 教的結構化輸出。
+</div>
+
+<h2>Temperature：模型的「亂度」</h2>
+
+<p><code>temperature</code> 是個 0 到 2 的數字，控制模型回答的「隨機性」：</p>
+
+<pre><code>response = client.responses.create(
+    model="gpt-4o",
+    input="寫一個短句",
+    temperature=0.0,   # 幾乎一致的輸出
+)</code></pre>
+
+<ul>
+  <li><strong>temperature=0</strong>：每次幾乎都回一樣的答案，適合「事實查詢」「程式碼生成」這種需要可預測性的任務</li>
+  <li><strong>temperature=1.0</strong>（預設）：有變化，適合一般用途</li>
+  <li><strong>temperature=1.5 以上</strong>：很有創意但開始胡言亂語</li>
+</ul>
+
+<p>本課的工具大多用 0 到 0.7 之間。<code>temperature=0</code> 看似最「準」，但有時候模型會卡在一個錯誤答案重複輸出，<strong>不總是最佳選擇</strong>。</p>
+
+<div class="callout tip">
+  <span class="label">Tip</span>
+  Temperature 這個詞來自統計物理。你不需要懂背後的數學——只要知道<strong>數字小 = 穩定、數字大 = 多樣</strong>就夠了。實務上 0.3 到 0.7 是最常用的範圍。
+</div>
+
+<h2>一個完整範例：中文改寫工具</h2>
+
+<p>把這章學的東西整合起來，做一個可重複呼叫的中文改寫工具：</p>
+
+<pre><code>from dotenv import load_dotenv
+from openai import OpenAI
+
+load_dotenv()
+client = OpenAI()
+
+INSTRUCTIONS = """
+你是一位專業的中文編輯，專長是讓口語化的文字變得清晰、有條理、好閱讀。
+
+規則：
+1. 使用繁體中文
+2. 保留原意，不要加上沒講過的資訊
+3. 不要改變語意或結論
+4. 不要評論，直接輸出改寫後的文字
+5. 不加前綴（例如「以下是改寫」）
+""".strip()
+
+def rewrite(text: str, temperature: float = 0.3) -&gt; str:
+    response = client.responses.create(
+        model="gpt-4o",
+        instructions=INSTRUCTIONS,
+        input=text,
+        temperature=temperature,
+    )
+    return response.output_text
+
+if __name__ == "__main__":
+    sample = "今天那個會議啊大家講的好像有點亂客戶那邊也沒太理解"
+    print(rewrite(sample))</code></pre>
+
+<p>跑一次，輸出大概像：</p>
+
+<pre><code>今天的會議內容有些雜亂，客戶似乎也沒有完全理解。</code></pre>
+
+<p>這個工具現在可以重複呼叫——<code>rewrite()</code> 可以丟進任何一段文字，每次都會用同樣的規則改寫。本課從這裡開始，我們會反覆使用「instructions + input + 函式包裝」的模式。</p>
+
+<h2>小結</h2>
+
+<ol>
+  <li><strong>Prompt = <code>instructions</code>（角色與規則）+ <code>input</code>（具體素材）</strong>——清楚分開兩者</li>
+  <li><strong>好 prompt 的四元素</strong>：任務、背景、限制、格式</li>
+  <li><strong>角色設定的價值是「定義不要什麼」</strong>，不是裝飾</li>
+  <li><strong>指定輸出格式</strong>：先用範例，需要程式可讀的 JSON 用 Chapter 13 的結構化輸出</li>
+  <li><strong>temperature</strong>：0 穩定、1 預設、太高會胡言亂語</li>
+  <li><strong>把 prompt 包進函式</strong>：方便重複使用，固定 instructions 變動 input</li>
+</ol>
+
+<p>下一章我們把這個改寫工具擴充成完整的「文字小工具」——接命令列參數、處理檔案、加上各種選項。</p>
+
+<h2>練習</h2>
+
+<ol>
+  <li>改 <code>INSTRUCTIONS</code>，讓模型把口語轉成正式商務 email（含問候與結尾）。</li>
+  <li>加一個 <code>style</code> 參數，可以是 <code>"短"</code>、<code>"中"</code>、<code>"長"</code>，分別在 instructions 裡加上對應的字數限制。</li>
+  <li>試試把 <code>temperature</code> 從 0 改到 1.5，同一段輸入跑五次，比較穩定度的差異。</li>
+  <li>寫一個 prompt，要求模型輸出「情緒：[正面/負面/中性] | 信心：[0-100]」格式，並用 Python 解析回來。寫 <code>try/except</code> 處理偶爾的格式錯誤。</li>
+</ol>
+
+</article>
+
+</body>
+</html>

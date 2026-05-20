@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="utf-8">
+<title>Chapter 10. 音訊格式與 ffmpeg 基礎</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  table { border-collapse: collapse; margin: 1.2em 0; font-size: 0.94em; }
+  th, td { border: 1px solid var(--rule); padding: 8px 12px; text-align: left; }
+  th { background: #efece2; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<article>
+
+<p class="chapter-label">Chapter 10</p>
+<h1>音訊格式與 ffmpeg 基礎</h1>
+
+<p>上一章我們學會把音檔丟進 API 轉成文字。但有個 25MB 的硬限制——一場一小時的會議錄音怎麼樣都會超過。這章我們解決這個問題，順便把「音訊格式」這件事真正講清楚。</p>
+
+<h2>為什麼語音辨識偏愛 16kHz mono WAV？</h2>
+
+<p>等一下我們要用 <code>ffmpeg</code> 把音檔轉成 <code>16kHz mono WAV</code>。指令長這樣：</p>
+
+<pre><code>ffmpeg -y -i meeting.mp3 -ac 1 -ar 16000 -vn -f wav -acodec pcm_s16le meeting_16k_mono.wav</code></pre>
+
+<p>看起來像咒語。學員的合理疑問是：為什麼是 16kHz？為什麼要 mono？為什麼要 WAV 不繼續用 MP3？這些選擇不是隨便的，背後有具體理由。</p>
+
+<p><strong>為什麼 16kHz？</strong> 人類講話的能量主要集中在 300Hz 到 3400Hz——這也是傳統電話只取樣到 8kHz 的原因。語音辨識模型通常用 16kHz 訓練，因為這個取樣率剛好涵蓋了人聲的關鍵頻段，又不會像 44.1kHz（CD 品質）那樣帶進一堆對辨識沒幫助的高頻噪音。把音樂用的 44.1kHz 餵給語音模型，模型不會比較準，反而檔案大了快三倍。</p>
+
+<p><strong>為什麼 mono？</strong> 會議錄音很多時候是雙聲道（左右麥克風或立體聲），但語音辨識只在意「有人在講什麼」，不在意「他坐在你左邊還是右邊」。轉成 mono 把兩個聲道合併，檔案小一半、辨識結果幾乎沒差。如果你的錄音是兩個人各佔一個聲道（例如線上會議的單獨軌錄音），那是另一個問題——你應該分軌轉錄，而不是合成 mono。</p>
+
+<p><strong>為什麼 WAV 不用 MP3？</strong> MP3 是有損壓縮，為了讓檔案變小，它丟掉了一些人耳不容易察覺的細節。對聽音樂來說沒差，但對模型來說，那些被丟掉的細節有時候正是它判斷子音、尾音的線索。WAV 配 PCM 是未壓縮的原始音訊，給模型最完整的資料。當然 WAV 檔案會大很多——如果你只是要儲存或傳輸，再壓回 MP3 就好。WAV 的角色是「給模型吃的格式」，不是「給人類儲存的格式」。</p>
+
+<p>所以那串指令在做什麼，重講一次就清楚了：把任意音檔轉成「16kHz 取樣、單聲道、未壓縮的 WAV」——這是給語音模型最理想的食物。</p>
+
+<div class="callout note">
+  <span class="label">Note</span>
+  講「給模型最理想的食物」並不表示其他格式不行。OpenAI 的 API 內部其實會幫你做必要的轉換——丟 44.1kHz stereo MP3 也會跑、結果也不會明顯差。差別在<strong>檔案大小</strong>：同一段 1 小時的會議，44.1kHz stereo WAV 可能 600MB，16kHz mono MP3 可能 30MB。後者你還可能直接丟進 25MB API（如果再壓到 64kbps 大概勉強進得去），前者一定爆。所以這章學的不只是「品質優化」，更是「成本與可行性」。
+</div>
+
+<h2>Container vs Codec</h2>
+
+<p>寫這套課最常被問的一個問題：「MP3 跟 WAV 差在哪？」</p>
+
+<p>正確的答案需要先分開兩個概念：</p>
+
+<ul>
+  <li><strong>Container（容器）</strong>：檔案的「外包裝」，副檔名通常代表它。例如 <code>.mp3</code>、<code>.wav</code>、<code>.m4a</code>、<code>.ogg</code>、<code>.mp4</code>。</li>
+  <li><strong>Codec（編解碼器）</strong>：實際把聲音壓縮/還原的演算法。例如 MP3 codec、AAC、Opus、PCM、FLAC。</li>
+</ul>
+
+<p>MP3 比較特別——容器跟 codec 同名。但一般情況下兩者可以分開：</p>
+
+<ul>
+  <li><code>.wav</code> 容器裡面通常裝 PCM（未壓縮），但偶爾也裝壓縮資料</li>
+  <li><code>.m4a</code> 容器裡面通常是 AAC codec</li>
+  <li><code>.mp4</code> 容器裡面可以同時有 AAC 音訊跟 H.264 影像</li>
+</ul>
+
+<p>這個區別在你看 ffmpeg 指令時會清楚很多：<code>-f wav</code> 指定容器格式，<code>-acodec pcm_s16le</code> 指定音訊 codec。兩個分開設定。</p>
+
+<h2>用 ffprobe 看音檔有什麼</h2>
+
+<p><code>ffprobe</code> 是 ffmpeg 附帶的「音訊偵探」工具，告訴你檔案的真相：</p>
+
+<pre><code>ffprobe -v error -show_format -show_streams -print_format json meeting.mp3</code></pre>
+
+<p>輸出（節錄）：</p>
+
+<pre><code>{
+  "streams": [
+    {
+      "codec_name": "mp3",
+      "codec_type": "audio",
+      "sample_rate": "44100",
+      "channels": 2,
+      "bit_rate": "128000",
+      "duration": "1832.5"
+    }
+  ],
+  "format": {
+    "filename": "meeting.mp3",
+    "duration": "1832.5",
+    "size": "29320192",
+    "bit_rate": "128043"
+  }
+}</code></pre>
+
+<p>可以看到：</p>
+
+<ul>
+  <li>取樣率 44100 Hz</li>
+  <li>2 聲道（stereo）</li>
+  <li>128 kbps bitrate</li>
+  <li>約 30 分鐘長</li>
+  <li>約 30 MB</li>
+</ul>
+
+<p>這就告訴我們：<strong>這個檔案太大，無法直接丟進 OpenAI API</strong>。但只要轉換取樣率與聲道，可以壓很多。</p>
+
+<h2>用 ffmpeg 轉成語音辨識友善格式</h2>
+
+<p>最常用的指令：</p>
+
+<pre><code>ffmpeg -y -i meeting.mp3 -ac 1 -ar 16000 -vn -f wav -acodec pcm_s16le meeting_16k_mono.wav</code></pre>
+
+<p>把參數拆開：</p>
+
+<table>
+  <thead>
+    <tr><th>參數</th><th>意思</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>-y</code></td><td>覆蓋目標檔案不問</td></tr>
+    <tr><td><code>-i meeting.mp3</code></td><td>輸入檔案</td></tr>
+    <tr><td><code>-ac 1</code></td><td>audio channels = 1（mono）</td></tr>
+    <tr><td><code>-ar 16000</code></td><td>audio rate = 16000 Hz</td></tr>
+    <tr><td><code>-vn</code></td><td>去掉視訊流（如果輸入是 mp4）</td></tr>
+    <tr><td><code>-f wav</code></td><td>強制輸出容器格式為 wav</td></tr>
+    <tr><td><code>-acodec pcm_s16le</code></td><td>音訊 codec 用 16-bit PCM little-endian（最相容的選項）</td></tr>
+    <tr><td><code>meeting_16k_mono.wav</code></td><td>輸出檔案</td></tr>
+  </tbody>
+</table>
+
+<p>轉換完用 ffprobe 檢查一下，會看到新檔案是 16kHz mono PCM WAV。</p>
+
+<div class="callout tip">
+  <span class="label">Tip</span>
+  ffmpeg 的指令以彈性出名，但也以難記出名。一個實用建議：<strong>把常用指令做成 shell 函式或 alias</strong>。例如在你的 <code>~/.zshrc</code> 或 <code>~/.bashrc</code> 加上：<code>function to-asr() { ffmpeg -y -i "$1" -ac 1 -ar 16000 -vn -f wav -acodec pcm_s16le "${1%.*}_16k_mono.wav"; }</code>——以後一行 <code>to-asr meeting.mp3</code> 就搞定。
+</div>
+
+<h2>壓縮成更小的 MP3</h2>
+
+<p>如果你想保留 MP3 容器但讓檔案變小（例如希望剛好塞進 25MB 限制）：</p>
+
+<pre><code>ffmpeg -y -i meeting.mp3 -ac 1 -ar 16000 -b:a 64k meeting_small.mp3</code></pre>
+
+<p><code>-b:a 64k</code> 指定音訊 bitrate 64 kbps。這對人聲來說品質夠用了，比原本 128 kbps 小一半，又比 WAV 小很多。一小時的會議大約 30MB（如果原本 stereo 44.1k）會壓到 28MB 左右——勉強過 OpenAI 的 25MB 線需要再低一點，例如 <code>-b:a 48k</code>。</p>
+
+<div class="callout note">
+  <span class="label">Note</span>
+  Bitrate 越低，「壓得越扁」——以人耳來說 64k 已經明顯比 128k 差，但對語音辨識來說 64k 的辨識率掉一點點，48k 開始有感。<strong>不要為了過 25MB 線壓得太兇</strong>——Chapter 11 我們會學「分段」，那是更穩健的解法。
+</div>
+
+<h2>在 Python 裡呼叫 ffmpeg</h2>
+
+<p>實務上我們不會手動下指令，而是讓 Python 呼叫 ffmpeg。標準做法用 <code>subprocess</code>：</p>
+
+<pre><code>import subprocess
+from pathlib import Path
+
+def convert_to_asr_friendly(input_path: Path) -&gt; Path:
+    output_path = input_path.with_name(f"{input_path.stem}_16k_mono.wav")
+    subprocess.run(
+        [
+            "ffmpeg", "-y",
+            "-i", str(input_path),
+            "-ac", "1",
+            "-ar", "16000",
+            "-vn",
+            "-f", "wav",
+            "-acodec", "pcm_s16le",
+            str(output_path),
+        ],
+        check=True,
+        capture_output=True,
+    )
+    return output_path</code></pre>
+
+<p>幾個重點：</p>
+
+<ul>
+  <li>指令用 list 傳，不是字串——避免 shell injection</li>
+  <li><code>check=True</code> 讓 ffmpeg 失敗時 Python 也丟 exception</li>
+  <li><code>capture_output=True</code> 把 ffmpeg 的輸出抓住，不會弄髒終端機</li>
+</ul>
+
+<div class="callout warning">
+  <span class="label">Warning</span>
+  <code>subprocess.run</code> 預設不會把 ffmpeg 的詳細錯誤訊息給你。如果遇到失敗，記得 catch <code>subprocess.CalledProcessError</code> 並印出 <code>e.stderr.decode()</code>——ffmpeg 把所有有用的錯誤資訊都印在 stderr。
+</div>
+
+<h2>用 ffprobe 拿時長</h2>
+
+<p>知道音檔長度對「估算 API 成本」「規劃切段」很重要。<code>ffprobe</code> 也能用 Python 呼叫：</p>
+
+<pre><code>import json
+import subprocess
+from pathlib import Path
+
+def get_duration(audio_path: Path) -&gt; float:
+    result = subprocess.run(
+        [
+            "ffprobe", "-v", "error",
+            "-show_format", "-print_format", "json",
+            str(audio_path),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    info = json.loads(result.stdout)
+    return float(info["format"]["duration"])</code></pre>
+
+<p>呼叫：</p>
+
+<pre><code>duration = get_duration(Path("meeting.mp3"))
+print(f"音檔長度：{duration:.1f} 秒（{duration/60:.1f} 分鐘）")</code></pre>
+
+<h2>整合範例：自動準備音檔</h2>
+
+<p>把這章的東西組合成一個工具：給定任何音檔，自動轉成 ASR 友善格式，並回報轉換後的大小：</p>
+
+<pre><code>import json
+import subprocess
+import sys
+from pathlib import Path
+
+def get_info(path: Path) -&gt; dict:
+    result = subprocess.run(
+        ["ffprobe", "-v", "error", "-show_format", "-show_streams",
+         "-print_format", "json", str(path)],
+        check=True, capture_output=True, text=True,
+    )
+    return json.loads(result.stdout)
+
+def convert(input_path: Path) -&gt; Path:
+    output_path = input_path.with_name(f"{input_path.stem}_16k_mono.wav")
+    subprocess.run(
+        ["ffmpeg", "-y", "-i", str(input_path),
+         "-ac", "1", "-ar", "16000", "-vn",
+         "-f", "wav", "-acodec", "pcm_s16le",
+         str(output_path)],
+        check=True, capture_output=True,
+    )
+    return output_path
+
+def main(input_str: str) -&gt; None:
+    input_path = Path(input_str)
+    if not input_path.exists():
+        print(f"找不到 {input_path}", file=sys.stderr); sys.exit(1)
+
+    info = get_info(input_path)
+    before_mb = input_path.stat().st_size / (1024 * 1024)
+    duration = float(info["format"]["duration"])
+    print(f"原始：{before_mb:.1f} MB, 時長：{duration/60:.1f} 分鐘")
+
+    output_path = convert(input_path)
+    after_mb = output_path.stat().st_size / (1024 * 1024)
+    print(f"轉換後：{output_path.name}（{after_mb:.1f} MB）")
+
+if __name__ == "__main__":
+    main(sys.argv[1])</code></pre>
+
+<p>跑：</p>
+
+<pre><code>python prepare_audio.py meeting.mp3</code></pre>
+
+<h2>小結</h2>
+
+<ol>
+  <li><strong>Container 跟 Codec 是兩件事</strong>——副檔名通常代表 container，內部可以裝不同 codec</li>
+  <li><strong><code>ffprobe</code> 看音檔資訊</strong>——時長、取樣率、聲道、bitrate</li>
+  <li><strong><code>ffmpeg</code> 轉檔</strong>——<code>-ac 1 -ar 16000</code> 是語音辨識友善格式的核心兩個參數</li>
+  <li><strong>語音辨識想要 16kHz mono</strong>——更高品質對辨識無幫助，反而檔案大</li>
+  <li><strong>Python 用 <code>subprocess.run</code> 呼叫 ffmpeg</strong>——指令用 list 傳，<code>check=True</code> 抓失敗</li>
+  <li><strong><code>-b:a 64k</code> 是常用 MP3 bitrate</strong>——對語音辨識來說品質夠</li>
+</ol>
+
+<p>下一章我們解決真正的痛點：一小時的會議錄音怎麼分段送進 API、結果怎麼合併。</p>
+
+<h2>練習</h2>
+
+<ol>
+  <li>找一個你手邊的音檔，用 <code>ffprobe</code> 看它的資訊（取樣率、聲道、bitrate、時長）。</li>
+  <li>把這個音檔用 <code>ffmpeg</code> 轉成 16kHz mono WAV，比較轉換前後檔案大小。</li>
+  <li>再轉成 16kHz mono MP3 64kbps，比較三種版本的大小：原始 / WAV / MP3。</li>
+  <li>寫一個 Python 函式 <code>audio_summary(path)</code>，回傳一個 dict 包含：時長（秒）、檔案大小（MB）、取樣率、聲道數。</li>
+</ol>
+
+</article>
+
+</body>
+</html>

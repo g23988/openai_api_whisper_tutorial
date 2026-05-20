@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="utf-8">
+<title>Chapter 4. HTTP 與 JSON 基礎</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  table { border-collapse: collapse; margin: 1.2em 0; font-size: 0.94em; }
+  th, td { border: 1px solid var(--rule); padding: 8px 12px; text-align: left; }
+  th { background: #efece2; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<article>
+
+<p class="chapter-label">Chapter 4</p>
+<h1>HTTP 與 JSON 基礎</h1>
+
+<p>上一章我們講過，API call 就是「程式之間的一通電話」。這章我們把這通電話拆開看：訊息是怎麼包裝的、傳哪邊去的、收到的回應裡有什麼。</p>
+
+<p>理解這層你會獲得兩個東西：</p>
+
+<ol>
+  <li>看到陌生 API 文件不會慌（包括 OpenAI 文件）</li>
+  <li>出錯的時候看得懂錯誤訊息（401、429、500 各是什麼意思）</li>
+</ol>
+
+<p>我們會盡量不下沉到太底層的細節——那是後端工程師的工作。我們只挖到「會用、能除錯」的深度。</p>
+
+<h2>HTTP 是什麼</h2>
+
+<p>HTTP（HyperText Transfer Protocol）是 1991 年由 Tim Berners-Lee 發明的協議，原本只是為了讓網頁瀏覽器可以從伺服器抓網頁。三十多年後，HTTP 變成了<strong>幾乎所有網路服務之間溝通的標準語言</strong>——不只網頁，連 OpenAI API、Stripe 付款、Google Maps、你家路由器的設定頁，背後都是 HTTP。</p>
+
+<div class="callout tip">
+  <span class="label">Tip</span>
+  HTTP 變成「萬用通訊協定」是有歷史偶然性的。1990 年代有很多其他協定（FTP、Gopher、WAIS），但 HTTP 因為跟著瀏覽器一起爆紅，加上設計足夠簡單彈性，後來其他協定要做的事都被 HTTP 吃下來。今天的「HTTP API」其實是 HTTP 的「副業」——但這個副業比正業還大。
+</div>
+
+<p>一個 HTTP 請求（request）有四個部分：</p>
+
+<ol>
+  <li><strong>Method</strong>：動詞，常見的有 <code>GET</code>（要資料）、<code>POST</code>（送資料）、<code>PUT</code>、<code>DELETE</code></li>
+  <li><strong>URL</strong>：要送到哪裡，例如 <code>https://api.openai.com/v1/responses</code></li>
+  <li><strong>Headers</strong>：附加資訊，例如「我是誰」「我送什麼格式的資料」</li>
+  <li><strong>Body</strong>：資料本體，通常是 JSON</li>
+</ol>
+
+<p>回應（response）有三個部分：</p>
+
+<ol>
+  <li><strong>Status code</strong>：三位數，告訴你成功還失敗</li>
+  <li><strong>Headers</strong>：類似 request，但是反向</li>
+  <li><strong>Body</strong>：回傳的資料，也通常是 JSON</li>
+</ol>
+
+<p>OpenAI 呼叫 API 的時候，背後就是這樣的一封信。</p>
+
+<h2>一個真實的 OpenAI API 請求長這樣</h2>
+
+<p>如果你不用 SDK、用最原始的 HTTP 工具（例如 <code>curl</code>）呼叫 OpenAI，會像這樣：</p>
+
+<pre><code>curl https://api.openai.com/v1/responses \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4o",
+    "input": "用一句話解釋什麼是 API。"
+  }'</code></pre>
+
+<p>把這封信拆開：</p>
+
+<ul>
+  <li><strong>URL</strong>：<code>https://api.openai.com/v1/responses</code> 是 OpenAI 的 Responses API 入口</li>
+  <li><strong>Method</strong>：<code>-d</code> 自動讓 curl 用 <code>POST</code>（因為有資料要送）</li>
+  <li><strong>Headers</strong>：
+    <ul>
+      <li><code>Authorization: Bearer YOUR_API_KEY</code> 告訴 OpenAI「我是誰」</li>
+      <li><code>Content-Type: application/json</code> 告訴 OpenAI「我送的資料是 JSON」</li>
+    </ul>
+  </li>
+  <li><strong>Body</strong>：那串 <code>{"model": "gpt-4o", ...}</code> 就是 JSON</li>
+</ul>
+
+<p>OpenAI 收到後會回你一封信，body 也是一個 JSON，內容類似：</p>
+
+<pre><code>{
+  "id": "resp_abc123",
+  "model": "gpt-4o",
+  "output": [
+    {
+      "type": "message",
+      "content": [
+        {
+          "type": "output_text",
+          "text": "API 是讓不同程式溝通的標準化介面。"
+        }
+      ]
+    }
+  ],
+  "usage": {
+    "input_tokens": 12,
+    "output_tokens": 15
+  }
+}</code></pre>
+
+<p>OpenAI Python SDK 在做的事，<strong>就是把你呼叫的 <code>client.responses.create(...)</code> 翻譯成上面那封信、送出去、然後把回傳的 JSON 拆開包成 Python 物件給你</strong>。沒有魔法，全部都是 HTTP。</p>
+
+<div class="callout note">
+  <span class="label">Note</span>
+  「Bearer Token」是 HTTP 的身份驗證方式之一，意思是「持有這張票的人就有權限」。所以你的 API key 就是那張票——誰拿到都能用。這也是為什麼保護 key 這麼重要。
+</div>
+
+<h2>JSON 是什麼</h2>
+
+<p>JSON（JavaScript Object Notation）是一種「結構化資料的文字格式」。它長得跟 Python 的 <code>dict</code> 跟 <code>list</code> 非常像：</p>
+
+<pre><code>{
+  "name": "OpenAI",
+  "founded": 2015,
+  "models": ["gpt-4o", "gpt-4o-mini", "whisper-1"],
+  "active": true
+}</code></pre>
+
+<p>JSON 支援的資料型別只有六種：</p>
+
+<table>
+  <thead>
+    <tr><th>JSON 型別</th><th>範例</th><th>對應的 Python</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>string</td><td><code>"hello"</code></td><td><code>str</code></td></tr>
+    <tr><td>number</td><td><code>42</code>、<code>3.14</code></td><td><code>int</code> / <code>float</code></td></tr>
+    <tr><td>boolean</td><td><code>true</code> / <code>false</code></td><td><code>True</code> / <code>False</code></td></tr>
+    <tr><td>null</td><td><code>null</code></td><td><code>None</code></td></tr>
+    <tr><td>array</td><td><code>[1, 2, 3]</code></td><td><code>list</code></td></tr>
+    <tr><td>object</td><td><code>{"a": 1}</code></td><td><code>dict</code></td></tr>
+  </tbody>
+</table>
+
+<p>就這六種。沒有 datetime、沒有 set、沒有函式——故意設計得很小，因為<strong>要每個程式語言都能解讀，得用最低公分母</strong>。日期通常用字串表示（例如 <code>"2025-01-15T10:30:00Z"</code>），由程式自己解析。</p>
+
+<div class="callout tip">
+  <span class="label">Tip</span>
+  JSON 是 2001 年由 Douglas Crockford 推廣的格式。在那之前，網路上的標準是 XML（看起來像 HTML 那種）。XML 很強大，但也很囉嗦——同一份資料，XML 通常比 JSON 多兩倍以上的字。JSON 的設計哲學是「<strong>剛剛好就好</strong>」，結果完勝。十年內 XML 在 web API 領域基本被淘汰，今天幾乎所有現代 API 都用 JSON，包括 OpenAI、Stripe、GitHub、Twitter（X）。
+</div>
+
+<h2>JSON 的常見坑</h2>
+
+<p>JSON 看起來簡單，但有幾個地雷新手必踩：</p>
+
+<p><strong>1. 不能有逗號在最後一個元素後面</strong></p>
+
+<pre><code>{
+  "a": 1,
+  "b": 2,
+}</code></pre>
+
+<p>最後一個 <code>2,</code> 那個逗號在 Python <code>dict</code> 可以、在 JavaScript 物件可以，<strong>但 JSON 不行</strong>。這叫「trailing comma」，標準 JSON 會直接 parse 失敗。</p>
+
+<p><strong>2. 字串只能用雙引號</strong></p>
+
+<pre><code>{ 'name': 'OpenAI' }</code></pre>
+
+<p>JSON 不允許單引號，必須用雙引號。</p>
+
+<p><strong>3. 不能寫註解</strong></p>
+
+<p>JSON 標準不支援註解（雖然有些 parser 會接受 <code>//...</code>，但別依賴）。要加說明只能用一個 key 假裝是註解，例如 <code>"_comment": "這欄之後要刪掉"</code>。</p>
+
+<div class="callout warning">
+  <span class="label">Warning</span>
+  Python 的 dict 跟 JSON 看起來很像，但有幾個差異會害你：(1) Python 用 <code>True / False / None</code>，JSON 用小寫的 <code>true / false / null</code>；(2) Python 允許單引號跟尾巴逗號，JSON 不允許。在 Python 裡寫 dict 隨意，但<strong>輸出成 JSON 給別人時要小心</strong>。用 <code>json.dumps()</code> 而不是手動拼字串。
+</div>
+
+<h2>Python 裡怎麼操作 JSON</h2>
+
+<p>Python 內建 <code>json</code> 模組，兩個最常用的函式：</p>
+
+<pre><code>import json
+
+# Python 物件 → JSON 字串
+data = {"model": "gpt-4o", "input": "Hello"}
+json_str = json.dumps(data)
+print(json_str)
+# {"model": "gpt-4o", "input": "Hello"}
+
+# JSON 字串 → Python 物件
+parsed = json.loads(json_str)
+print(parsed["model"])
+# gpt-4o</code></pre>
+
+<p><code>dumps</code> 是 "dump string"（轉出去成字串），<code>loads</code> 是 "load string"（從字串讀進來）。讀寫檔案用 <code>dump</code> 跟 <code>load</code>（不加 s）：</p>
+
+<pre><code>with open("config.json", "w", encoding="utf-8") as f:
+    json.dump(data, f, ensure_ascii=False, indent=2)
+
+with open("config.json", "r", encoding="utf-8") as f:
+    config = json.load(f)</code></pre>
+
+<p><code>ensure_ascii=False</code> 讓中文以原樣輸出而不是 <code>中文</code>，<code>indent=2</code> 讓檔案有縮排，人類看得懂。</p>
+
+<h2>HTTP Status Code：三位數的故事</h2>
+
+<p>當 OpenAI 回應你，status code 會告訴你成敗。三位數的開頭代表大類：</p>
+
+<ul>
+  <li><strong>2xx：成功</strong>。你要的東西在 body 裡，盡情用</li>
+  <li><strong>3xx：重新導向</strong>。「你要的東西搬家了，去這個新網址」</li>
+  <li><strong>4xx：你的請求有問題</strong>。少帶 key、格式錯、權限不夠</li>
+  <li><strong>5xx：對方伺服器壞了</strong>。不是你的問題，重試或等等</li>
+</ul>
+
+<p>對 OpenAI API 來說，你會踩到的主要是 4xx：</p>
+
+<table>
+  <thead>
+    <tr><th>Code</th><th>名稱</th><th>通常意思</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>200</td><td>OK</td><td>成功</td></tr>
+    <tr><td>400</td><td>Bad Request</td><td>你送的 JSON 格式錯誤，或缺必要欄位</td></tr>
+    <tr><td>401</td><td>Unauthorized</td><td>API key 錯了、過期了、或沒帶</td></tr>
+    <tr><td>403</td><td>Forbidden</td><td>API key 對，但這個帳號沒這個模型的權限</td></tr>
+    <tr><td>404</td><td>Not Found</td><td>URL 打錯，或模型名稱不存在</td></tr>
+    <tr><td>429</td><td>Too Many Requests</td><td>打太快，超過 rate limit</td></tr>
+    <tr><td>500</td><td>Internal Server Error</td><td>OpenAI 那邊出問題，重試或等</td></tr>
+    <tr><td>503</td><td>Service Unavailable</td><td>OpenAI 系統忙不過來，等等再試</td></tr>
+  </tbody>
+</table>
+
+<div class="callout note">
+  <span class="label">Note</span>
+  HTTP status code 是 1991 年 Tim Berners-Lee 跟同事一起設計的，其中 404 因為太常見已經變成流行文化的一部分（很多網站把 404 頁面做得很有梗）。418 是個彩蛋——"I'm a teapot"，1998 年愚人節玩笑寫進 RFC 的，意思是「我是茶壺，不能煮咖啡」。HTTP 標準是有幽默感的。
+</div>
+
+<h2>從這裡看 SDK 在幹嘛</h2>
+
+<p>回頭看 Python SDK：</p>
+
+<pre><code>response = client.responses.create(
+    model="gpt-4o",
+    input="用一句話解釋什麼是 API。",
+)</code></pre>
+
+<p>當你呼叫這行，SDK 在幫你做的事：</p>
+
+<ol>
+  <li>把 <code>model</code> 跟 <code>input</code> 包成 JSON</li>
+  <li>加上 <code>Authorization: Bearer ...</code>（從環境變數讀 API key）</li>
+  <li>加上 <code>Content-Type: application/json</code></li>
+  <li>用 <code>POST</code> method 送到 <code>https://api.openai.com/v1/responses</code></li>
+  <li>收到回應，看 status code</li>
+  <li>如果是 4xx 或 5xx，丟出對應的 Python exception（例如 <code>AuthenticationError</code>、<code>RateLimitError</code>）</li>
+  <li>如果是 200，把回傳的 JSON 解析成 Python 物件</li>
+</ol>
+
+<p><strong>SDK 不是魔法，是幫你省下這些重複動作的工具</strong>。理解這層，你之後看 OpenAI 文件（或任何 REST API 文件）都會很快上手——因為所有 REST API 都是這個模式。</p>
+
+<h2>小結</h2>
+
+<p>這章把 API call 的「內部」拆開來看：</p>
+
+<ol>
+  <li><strong>HTTP 是萬用網路通訊協定</strong>——request 有 method、URL、headers、body；response 有 status code、headers、body</li>
+  <li><strong>JSON 是現代 API 的標準資料格式</strong>——簡單、跨語言、剛剛好</li>
+  <li><strong>Python <code>json</code> 模組</strong>：<code>dumps/loads</code> 轉字串，<code>dump/load</code> 操作檔案</li>
+  <li><strong>HTTP status code 看開頭分類</strong>：2xx 成功、4xx 你的問題、5xx 對方問題</li>
+  <li><strong>OpenAI SDK 就是 HTTP+JSON 的包裝</strong>——理解這層，所有 REST API 都通</li>
+</ol>
+
+<p>下一章開始我們要動手——把 Python 環境真正設定起來，準備在 Chapter 6 打第一通 API call。</p>
+
+<h2>練習</h2>
+
+<ol>
+  <li>把這個 Python dict 用 <code>json.dumps()</code> 轉成 JSON 字串，並用 <code>indent=2</code> 讓它有排版：<code>{"name": "OpenAI", "models": ["gpt-4o", "o1"], "founded": 2015}</code></li>
+  <li>故意寫一個有 trailing comma 的 JSON 字串，丟給 <code>json.loads()</code>，看看跳什麼錯。</li>
+  <li>解釋為什麼 401 和 403 是不一樣的錯——一個是「沒帶有效身份」，另一個是「身份是真的但沒權限」。生活中可以舉一個類似的例子嗎？</li>
+  <li>看 OpenAI 文件的 API reference 頁，找一個你沒呼叫過的 endpoint（例如 <code>images.generate</code>），看它的 request body 範例長什麼樣。能不能光看 JSON 結構就猜出它在做什麼？</li>
+</ol>
+
+</article>
+
+</body>
+</html>
