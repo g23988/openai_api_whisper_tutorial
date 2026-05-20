@@ -12,12 +12,18 @@
   --tip-border: #3d8c47;
   --warning-bg: #fbe9e6;
   --warning-border: #c0392b;
+  --font-serif: "Iowan Old Style", "Palatino Linotype", "URW Palladio L",
+                "Source Serif Pro", "Noto Serif TC", Georgia, "PingFang TC",
+                "Heiti TC", serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC",
+               "PingFang TC", "Heiti TC", sans-serif;
+  --font-mono: "SF Mono", Menlo, Monaco, Consolas, "Courier New", monospace;
 }
 
 html { font-size: 17px; }
 
 body {
-  font-family: Georgia, "Source Han Serif TC", "Noto Serif CJK TC", "PingFang TC", "Songti TC", serif;
+  font-family: var(--font-serif);
   max-width: 720px;
   margin: 56px auto 80px;
   padding: 0 28px;
@@ -60,7 +66,7 @@ ol, ul {
 li { margin: 0.4em 0; }
 
 code {
-  font-family: Menlo, Consolas, "Roboto Mono", "Courier New", monospace;
+  font-family: var(--font-mono);
   background: var(--inline-bg);
   padding: 1px 6px;
   border-radius: 3px;
@@ -106,7 +112,7 @@ strong { font-weight: 700; }
   border-radius: 3px;
   margin-right: 8px;
   vertical-align: 2px;
-  font-family: Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
 }
 
 .callout p { margin: 0.2em 0; display: inline; }
@@ -139,7 +145,7 @@ strong { font-weight: 700; }
 }
 
 .chapter-label {
-  font-family: Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   text-transform: uppercase;
   letter-spacing: 0.15em;
   font-size: 0.8em;

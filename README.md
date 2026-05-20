@@ -64,7 +64,7 @@ python3 -m http.server 8000
 每章兩個檔：
 
 - `.md` — Markdown 原始版（GitHub 上會自動渲染）
-- `.html` — O'Reilly 風格獨立 HTML（Note/Tip/Warning 框、米色背景、襯線字體）
+- `.html` — 書籍式閱讀版 HTML（Note/Tip/Warning 框、米色背景、襯線字體）
 
 ## 修改後重建 index.html
 
