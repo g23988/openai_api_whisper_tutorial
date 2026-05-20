@@ -1,10 +1,42 @@
-# Learning OpenAI API with Python
+# OpenAI API Whisper Tutorial
 
-從第一個 API call 到自己的 AI 小工具。共 18 章，O'Reilly 風格中文教材。
+從 Python 基礎、第一個 OpenAI API call，到語音轉文字、長音檔切分、Streamlit GUI 與完整小工具。共 18 章，採中文教材形式撰寫。
 
 ## 線上閱讀
 
-`index.html` 是合併版單頁瀏覽，所有章節 + TOC + 章節間導覽集中一頁。
+GitHub Pages：
+
+https://g23988.github.io/openai_api_whisper_tutorial/
+
+`index.html` 是合併版單頁瀏覽，包含所有章節、目錄與章節間導覽。
+
+## 適合誰
+
+- 想用 Python 呼叫 OpenAI API 的初學者
+- 想把錄音、會議音檔或訪談音檔轉成文字的人
+- 想做自己的 AI 文字處理或語音轉文字小工具的人
+- 想理解 API key、安全性、成本估算與錯誤處理的人
+
+## 章節
+
+- Chapter 00：環境設定與終端機基礎
+- Chapter 01：Python 語法基礎
+- Chapter 02：檔案處理與錯誤處理
+- Chapter 03：什麼是 API
+- Chapter 04：HTTP 與 JSON
+- Chapter 05：Python 開發環境與 `OPENAI_API_KEY`
+- Chapter 06：第一次 OpenAI API 呼叫
+- Chapter 07：Prompt 基礎
+- Chapter 08：文字處理工具
+- Chapter 09：Speech to Text
+- Chapter 10：音訊與 FFmpeg
+- Chapter 11：長音檔切分
+- Chapter 12：Streamlit GUI
+- Chapter 13：Structured Output
+- Chapter 14：Streaming
+- Chapter 15：專案結構
+- Chapter 16：安全、成本與錯誤處理
+- Chapter 17：Final Project
 
 ## 本機預覽
 
@@ -17,55 +49,16 @@ python3 -m http.server 8000
 # 然後瀏覽器打開 http://localhost:8000
 ```
 
-## 部署到 GitHub Pages
-
-### 方案 A：chapters/ 內容當 repo root（推薦，URL 較乾淨）
-
-```bash
-cd chapters
-git init
-git add .
-git commit -m "Initial commit"
-git remote add origin git@github.com:你的帳號/openai-api-course.git
-git branch -M main
-git push -u origin main
-```
-
-到 GitHub repo → Settings → Pages → Source 選「main / root」。
-
-幾分鐘後可瀏覽：`https://你的帳號.github.io/openai-api-course/`
-
-### 方案 B：保留資料夾結構
-
-把整個 `note/` 推到 repo，GitHub Pages 設定 Source 為 `main` branch + `/chapters` 資料夾。
-
-URL：`https://你的帳號.github.io/repo名稱/`
-
-## 章節結構
+## 檔案結構
 
 ```
-chapters/
-├── index.html               # 合併單頁版（瀏覽入口）
-├── style.css                # 共用樣式
-├── build_index.py           # 重新產生 index.html 用
-├── ch00_environment_setup.{md,html}
-├── ch01_python_syntax_basics.{md,html}
-├── ch02_python_files_errors.{md,html}
-├── ch03_what_is_api.{md,html}
-├── ch04_http_and_json.{md,html}
-├── ch05_python_dev_env.{md,html}
-├── ch06_first_api_call.{md,html}
-├── ch07_prompt_basics.{md,html}
-├── ch08_text_tool.{md,html}
-├── ch09_speech_to_text.{md,html}
-├── ch10_audio_ffmpeg.{md,html}
-├── ch11_long_audio_split.{md,html}
-├── ch12_streamlit_gui.{md,html}
-├── ch13_structured_output.{md,html}
-├── ch14_streaming.{md,html}
-├── ch15_project_structure.{md,html}
-├── ch16_security_cost_errors.{md,html}
-└── ch17_final_project.{md,html}
+.
+├── index.html              # 合併單頁版，GitHub Pages 入口
+├── style.css               # 共用樣式
+├── build_index.py          # 重新產生 index.html 用
+├── ch00_*.md / .html
+├── ...
+└── ch17_*.md / .html
 ```
 
 每章兩個檔：
@@ -83,7 +76,14 @@ python3 build_index.py
 
 會根據各章 HTML 重新組合 `index.html`。
 
+## 部署
+
+這個 repo 使用 GitHub Pages，來源是 `main` branch 的 `/root`。
+
+部署完成後網址為：
+
+https://g23988.github.io/openai_api_whisper_tutorial/
+
 ## 授權
 
 教材內容請依個人或團體需要使用。範例程式以 MIT 授權釋出。
-# openai_api_whisper_tutorial
